@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Parakh design tokens — precision-instrument aesthetic.
+   QMSofts brand: navy, gold, teal, used with restraint.
+   ============================================================ */
+@theme {
+  --color-navy-50: #eef1f6;
+  --color-navy-100: #d6dce8;
+  --color-navy-200: #aab6cf;
+  --color-navy-500: #3a4a6b;
+  --color-navy-700: #283655;
+  --color-navy-900: #1f2a44;
+  --color-navy-950: #161e30;
+
+  --color-gold-400: #d4a72c;
+  --color-gold-500: #b8860b;
+  --color-gold-600: #9a6f08;
+
+  --color-teal-400: #3d9a92;
+  --color-teal-500: #2e7d77;
+  --color-teal-600: #245f5a;
+
+  --color-canvas: #f6f7f9;
+  --color-line: #e5e7eb;
+
+  --color-critical: #c0392b;
+  --color-major: #d68910;
+  --color-minor: #b7950b;
+  --color-ok: #1e8449;
+  --color-info: #2471a3;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius: 0.5rem;
+}
+
+:root {
+  --pk-navy: #1f2a44;
+  --pk-navy-700: #283655;
+  --pk-gold: #b8860b;
+  --pk-teal: #2e7d77;
+  --pk-canvas: #f6f7f9;
+  --pk-line: #e5e7eb;
+  --pk-muted: #6b7280;
+}
+
+* {
+  border-color: var(--pk-line);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--pk-canvas);
+  color: #1a1f2b;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pk-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
