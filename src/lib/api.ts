@@ -22,8 +22,15 @@ export const tokenStore = {
   },
 };
 
+// In dev, "/api" is proxied by Vite to the backend (see vite.config.ts).
+// In production there is no proxy, so VITE_API_URL must point at the deployed
+// backend's full origin; we append "/api" to it. Baked in at build time.
+const baseURL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "/api";
+
 export const api = axios.create({
-  baseURL: "/api",
+  baseURL,
   headers: { "Content-Type": "application/json" },
 });
 
