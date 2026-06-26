@@ -12,6 +12,11 @@ import type {
   CapaDetail,
   DashboardSummary,
   RiskHeatmapRow,
+  SupplierParent,
+  SupplierSite,
+  SupplierSiteDetail,
+  Material,
+  SupplierMaterialRow,
 } from "@/types";
 
 // ---------- Dashboard ----------
@@ -146,5 +151,143 @@ export function useCapaAction(id: string) {
       qc.invalidateQueries({ queryKey: ["capa", id] });
       qc.invalidateQueries({ queryKey: ["capas"] });
     },
+  });
+}
+
+// ---------- SQM: Supplier parents ----------
+export function useSupplierParents() {
+  return useQuery({
+    queryKey: ["supplier-parents"],
+    queryFn: async () =>
+      (await api.get<SupplierParent[]>("/supplier-parents")).data,
+  });
+}
+export function useSupplierParent(id: string | undefined) {
+  return useQuery({
+    queryKey: ["supplier-parent", id],
+    enabled: !!id,
+    queryFn: async () =>
+      (await api.get<SupplierParent>(`/supplier-parents/${id}`)).data,
+  });
+}
+export function useCreateSupplierParent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/supplier-parents", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["supplier-parents"] }),
+  });
+}
+export function useUpdateSupplierParent(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.put(`/supplier-parents/${id}`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supplier-parents"] });
+      qc.invalidateQueries({ queryKey: ["supplier-parent", id] });
+    },
+  });
+}
+
+// ---------- SQM: Supplier sites ----------
+export function useSupplierSites(parentId?: string) {
+  return useQuery({
+    queryKey: ["supplier-sites", parentId ?? "all"],
+    queryFn: async () =>
+      (await api.get<SupplierSite[]>("/supplier-sites", {
+        params: { parentId },
+      })).data,
+  });
+}
+export function useSupplierSite(id: string | undefined) {
+  return useQuery({
+    queryKey: ["supplier-site", id],
+    enabled: !!id,
+    queryFn: async () =>
+      (await api.get<SupplierSiteDetail>(`/supplier-sites/${id}`)).data,
+  });
+}
+export function useCreateSupplierSite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/supplier-sites", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["supplier-sites"] }),
+  });
+}
+export function useUpdateSupplierSite(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.put(`/supplier-sites/${id}`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supplier-sites"] });
+      qc.invalidateQueries({ queryKey: ["supplier-site", id] });
+    },
+  });
+}
+
+// ---------- SQM: Workflow transition ----------
+export function useTransition(objectType: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      trigger: string;
+      reason?: string | null;
+      esignatureId?: string | null;
+    }) =>
+      (await api.post(`/workflow/${objectType}/${id}/transition`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supplier-site", id] });
+      qc.invalidateQueries({ queryKey: ["supplier-sites"] });
+    },
+  });
+}
+
+// ---------- SQM: Materials ----------
+export function useMaterials() {
+  return useQuery({
+    queryKey: ["materials"],
+    queryFn: async () => (await api.get<Material[]>("/materials")).data,
+  });
+}
+export function useCreateMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/materials", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["materials"] }),
+  });
+}
+
+// ---------- SQM: Supplier-Material (ASL) ----------
+export function useSupplierMaterials(params: {
+  siteId?: string;
+  materialId?: string;
+}) {
+  return useQuery({
+    queryKey: ["supplier-materials", params.siteId ?? "", params.materialId ?? ""],
+    queryFn: async () =>
+      (await api.get<SupplierMaterialRow[]>("/supplier-materials", { params }))
+        .data,
+  });
+}
+export function useCreateSupplierMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/supplier-materials", body)).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["supplier-materials"] }),
+  });
+}
+export function useUpdateSupplierMaterial(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.put(`/supplier-materials/${id}`, body)).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["supplier-materials"] }),
   });
 }
