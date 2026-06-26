@@ -164,13 +164,24 @@ function CreateAuditorModal({ open, onClose }: { open: boolean; onClose: () => v
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  // certifications / languages / gxpAreas are jsonb columns in the DB, so the
+  // value sent must be valid JSON. Convert comma-separated free text into a JSON
+  // array string (e.g. "ISO, GMP" -> ["ISO","GMP"]); empty -> null.
+  function toJsonArray(text: string): string | null {
+    const parts = text
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return parts.length ? JSON.stringify(parts) : null;
+  }
+
   async function submit() {
     try {
       await create.mutateAsync({
         fullName: form.fullName,
-        certifications: form.certifications || null,
-        languages: form.languages || null,
-        gxpAreas: form.gxpAreas || null,
+        certifications: toJsonArray(form.certifications),
+        languages: toJsonArray(form.languages),
+        gxpAreas: toJsonArray(form.gxpAreas),
       });
       toast.push("Auditor created");
       onClose();
