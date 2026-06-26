@@ -126,6 +126,19 @@ function CreateCoaModal({ open, onClose }: { open: boolean; onClose: () => void 
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  // `parameters` is a jsonb column. If the user typed valid JSON, send it as-is;
+  // otherwise wrap their text as a JSON string so it's always valid jsonb.
+  function toJsonb(text: string): string | null {
+    const t = text.trim();
+    if (!t) return null;
+    try {
+      JSON.parse(t);
+      return t; // already valid JSON
+    } catch {
+      return JSON.stringify(t); // wrap plain text as a JSON string
+    }
+  }
+
   async function submit() {
     try {
       await create.mutateAsync({
@@ -133,7 +146,7 @@ function CreateCoaModal({ open, onClose }: { open: boolean; onClose: () => void 
         materialId: form.materialId,
         batchLot: form.batchLot,
         coaFileRef: form.coaFileRef || null,
-        parameters: form.parameters || null,
+        parameters: toJsonb(form.parameters),
       });
       toast.push("CoA inspection created");
       onClose();
