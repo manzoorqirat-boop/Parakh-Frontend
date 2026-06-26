@@ -4,6 +4,7 @@ import {
   Building2,
   ClipboardCheck,
   Wrench,
+  Package,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
@@ -11,7 +12,8 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/auditees", label: "Auditees", icon: Building2 },
+  { to: "/suppliers", label: "Suppliers", icon: Building2 },
+  { to: "/materials", label: "Materials", icon: Package },
   { to: "/audits", label: "Audits", icon: ClipboardCheck },
   { to: "/capas", label: "CAPAs", icon: Wrench },
 ];
