@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { ToastProvider } from "@/components/ui/overlay";
 import { Spinner } from "@/components/ui/status";
 import { AppLayout } from "@/components/AppLayout";
+import { RouteError } from "@/components/RouteError";
 import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { AuditeesPage } from "@/pages/AuditeesPage";
@@ -62,6 +63,7 @@ const router = createBrowserRouter([
     children: [
       {
         element: <AppLayout />,
+        errorElement: <RouteError />,
         children: [
           { path: "/", element: <DashboardPage /> },
           { path: "/suppliers", element: <SuppliersPage /> },
