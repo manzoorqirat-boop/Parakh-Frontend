@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { useScar, useScarAction } from "@/lib/hooks";
+import { Link } from "react-router-dom";
+import { Plus, AlertTriangle } from "lucide-react";
+import {
+  useScars,
+  useCreateScar,
+  useSupplierSites,
+} from "@/lib/hooks";
 import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Field,
   Input,
   Select,
@@ -15,431 +18,228 @@ import {
 import {
   Spinner,
   ErrorNote,
+  EmptyState,
   Badge,
   SeverityBadge,
 } from "@/components/ui/status";
-import { useToast } from "@/components/ui/overlay";
+import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
-import { fmtDate } from "@/lib/utils";
-import type { RootCauseMethod } from "@/types";
+import { fmtDate, daysUntil } from "@/lib/utils";
+import type { Severity, ScarSourceType } from "@/types";
 
-// The ordered stages of the SCAR lifecycle, for the progress rail.
-const STAGES = [
-  "Draft",
-  "Issued",
-  "SupplierResponding",
-  "ContainmentSubmitted",
-  "RootCauseSubmitted",
-  "ActionPlanSubmitted",
-  "UnderReview",
-  "EffectivenessPending",
-  "Closed",
+const SOURCE_TYPES: ScarSourceType[] = [
+  "Sncr",
+  "AuditFinding",
+  "Complaint",
+  "ScorecardTrigger",
+  "Change",
+  "Manual",
 ];
+const SEVERITIES: Severity[] = ["Critical", "Major", "Minor"];
 
-export function ScarDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error } = useScar(id);
-
-  if (isLoading) return <Spinner />;
-  if (error) return <ErrorNote message={apiError(error)} />;
-  if (!data || !id) return <ErrorNote message="SCAR not found." />;
-
-  const { scar, stateCode } = data;
-  const stageIdx = STAGES.indexOf(stateCode ?? "");
+export function ScarsPage() {
+  const { data, isLoading, error } = useScars();
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <>
-      <Link
-        to="/scars"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[var(--pk-navy)]"
-      >
-        <ArrowLeft size={14} /> Back to SCARs
-      </Link>
-
       <PageHeader
-        title={scar.title}
-        subtitle={`${scar.recordNumber ?? ""} · ${scar.sourceType}`}
+        title="SCARs"
+        subtitle="Supplier corrective action requests — the closed loop from event to verified effectiveness"
+        action={
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus size={16} /> New SCAR
+          </Button>
+        }
       />
 
-      {/* Progress rail */}
-      <div className="mb-5 flex flex-wrap items-center gap-1.5">
-        {STAGES.map((s, i) => (
-          <div key={s} className="flex items-center gap-1.5">
-            <span
-              className={
-                "rounded-md px-2 py-0.5 text-xs font-medium " +
-                (i < stageIdx
-                  ? "bg-green-50 text-green-700"
-                  : i === stageIdx
-                  ? "bg-[var(--pk-navy)] text-white"
-                  : "bg-gray-100 text-gray-400")
-              }
-            >
-              {s}
-            </span>
-            {i < STAGES.length - 1 && (
-              <span className="text-gray-300">›</span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader title="Request details" />
-          <CardBody>
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              <Detail label="Severity">
-                <SeverityBadge value={scar.severity} />
-              </Detail>
-              <Detail label="Priority">{scar.priority}</Detail>
-              <Detail label="Issued">{fmtDate(scar.issuedDate)}</Detail>
-              <Detail label="Response due">
-                {fmtDate(scar.responseDueDate)}
-              </Detail>
-              <Detail label="Effectiveness">{scar.effectivenessResult}</Detail>
-              <Detail label="Escalation cycles">{scar.escalationCount}</Detail>
-              <div className="col-span-2">
-                <dt className="text-xs text-gray-400">Problem statement</dt>
-                <dd className="whitespace-pre-wrap text-[var(--pk-navy)]">
-                  {scar.description}
-                </dd>
-              </div>
-              {scar.containmentAction && (
-                <div className="col-span-2">
-                  <dt className="text-xs text-gray-400">Containment</dt>
-                  <dd className="whitespace-pre-wrap text-[var(--pk-navy)]">
-                    {scar.containmentAction}
-                  </dd>
-                </div>
-              )}
-              {scar.rootCause && (
-                <div className="col-span-2">
-                  <dt className="text-xs text-gray-400">
-                    Root cause{" "}
-                    {scar.rootCauseMethod && (
-                      <span className="text-gray-300">
-                        ({scar.rootCauseMethod})
-                      </span>
-                    )}
-                  </dt>
-                  <dd className="whitespace-pre-wrap text-[var(--pk-navy)]">
-                    {scar.rootCause}
-                  </dd>
-                </div>
-              )}
-              {scar.correctiveAction && (
-                <div className="col-span-2">
-                  <dt className="text-xs text-gray-400">Corrective action</dt>
-                  <dd className="whitespace-pre-wrap text-[var(--pk-navy)]">
-                    {scar.correctiveAction}
-                  </dd>
-                </div>
-              )}
-              {scar.preventiveAction && (
-                <div className="col-span-2">
-                  <dt className="text-xs text-gray-400">Preventive action</dt>
-                  <dd className="whitespace-pre-wrap text-[var(--pk-navy)]">
-                    {scar.preventiveAction}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </CardBody>
-        </Card>
-
+      {isLoading ? (
+        <Spinner />
+      ) : error ? (
+        <ErrorNote message={apiError(error)} />
+      ) : !data || data.length === 0 ? (
+        <EmptyState
+          title="No SCARs yet"
+          message="SCARs are raised from nonconformances, audit findings, or scorecard breaches."
+        />
+      ) : (
         <Card>
-          <CardHeader title="Next action" />
-          <CardBody>
-            <div className="mb-3">
-              <div className="text-xs text-gray-400">Current state</div>
-              <div className="mt-1">
-                <Badge tone="info" className="text-sm">
-                  {stateCode ?? "—"}
-                </Badge>
-              </div>
-            </div>
-            <ActionPanel scarId={id} stateCode={stateCode ?? ""} />
+          <CardBody className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
+                  <th className="px-5 py-3 font-medium">SCAR no.</th>
+                  <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Supplier site</th>
+                  <th className="px-5 py-3 font-medium">Severity</th>
+                  <th className="px-5 py-3 font-medium">State</th>
+                  <th className="px-5 py-3 font-medium">Response due</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--pk-line)]">
+                {data.map((s) => {
+                  const dleft = daysUntil(s.responseDueDate);
+                  const overdue =
+                    dleft !== null &&
+                    dleft < 0 &&
+                    s.effectivenessResult !== "Effective";
+                  return (
+                    <tr key={s.id} className="hover:bg-gray-50/60">
+                      <td className="px-5 py-3">
+                        <Link
+                          to={`/scars/${s.id}`}
+                          className="font-medium text-[var(--pk-navy)] hover:underline"
+                        >
+                          {s.recordNumber ?? s.id.slice(0, 8)}
+                        </Link>
+                        {s.recurrenceFlag && (
+                          <Badge tone="danger" className="ml-2">
+                            recurrence
+                          </Badge>
+                        )}
+                        {s.escalationCount > 0 && (
+                          <Badge tone="warn" className="ml-2">
+                            esc ×{s.escalationCount}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-gray-700">{s.title}</td>
+                      <td className="px-5 py-3 text-gray-500">
+                        {s.siteName ?? "—"}
+                      </td>
+                      <td className="px-5 py-3">
+                        <SeverityBadge value={s.severity} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <Badge tone="info">{s.stateCode ?? "—"}</Badge>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={
+                            overdue ? "font-medium text-red-600" : "text-gray-600"
+                          }
+                        >
+                          {overdue && (
+                            <AlertTriangle
+                              size={12}
+                              className="mr-1 inline align-text-top"
+                            />
+                          )}
+                          {fmtDate(s.responseDueDate)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </CardBody>
         </Card>
-      </div>
+      )}
+
+      {showCreate && <CreateScarModal onClose={() => setShowCreate(false)} />}
     </>
   );
 }
 
-function Detail({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-gray-400">{label}</dt>
-      <dd className="text-[var(--pk-navy)]">{children}</dd>
-    </div>
-  );
-}
-
-// State-aware panel: shows the form for the action available from this state.
-// Each action posts to the SCAR service endpoint that carries the business
-// side effects (license provisioning, SLA, escalation), not the raw workflow.
-function ActionPanel({
-  scarId,
-  stateCode,
-}: {
-  scarId: string;
-  stateCode: string;
-}) {
-  const act = useScarAction(scarId);
+function CreateScarModal({ onClose }: { onClose: () => void }) {
+  const create = useCreateScar();
   const toast = useToast();
+  const { data: sites } = useSupplierSites();
+  const [form, setForm] = useState({
+    supplierSiteId: "",
+    sourceType: "Manual" as ScarSourceType,
+    title: "",
+    description: "",
+    severity: "Major" as Severity,
+    priority: "Medium",
+  });
 
-  // Local form state shared across the small forms.
-  const [contact, setContact] = useState({ name: "", email: "" });
-  const [text, setText] = useState("");
-  const [text2, setText2] = useState("");
-  const [rcm, setRcm] = useState<RootCauseMethod>("FiveWhys");
-
-  async function run(path: string, body?: Record<string, unknown>) {
+  async function submit() {
     try {
-      await act.mutateAsync({ path, body });
-      toast.push("Done");
-      setText("");
-      setText2("");
+      await create.mutateAsync({ ...form, sourceRefId: null });
+      toast.push("SCAR created");
+      onClose();
     } catch (e) {
       toast.push(apiError(e), "error");
     }
   }
 
-  switch (stateCode) {
-    case "Draft":
-      return (
-        <div className="space-y-3">
-          <p className="text-sm text-gray-500">
-            Issuing provisions a temporary external seat from the license pool,
-            scoped to this SCAR, and sets the response SLA by severity.
-          </p>
-          <Field label="Supplier contact name">
-            <Input
-              value={contact.name}
-              onChange={(e) =>
-                setContact({ ...contact, name: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Supplier contact email">
-            <Input
-              value={contact.email}
-              onChange={(e) =>
-                setContact({ ...contact, email: e.target.value })
-              }
-            />
-          </Field>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            disabled={!contact.name || !contact.email}
-            onClick={() =>
-              run("issue", {
-                contactName: contact.name,
-                contactEmail: contact.email,
-              })
+  const valid = form.supplierSiteId && form.title && form.description;
+
+  return (
+    <Modal open onClose={onClose} title="New SCAR">
+      <div className="space-y-4">
+        <Field label="Supplier site" hint="Required">
+          <Select
+            value={form.supplierSiteId}
+            onChange={(e) =>
+              setForm({ ...form, supplierSiteId: e.target.value })
             }
           >
-            Issue to supplier
-          </Button>
-        </div>
-      );
+            <option value="">Select a site…</option>
+            {(sites ?? []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.siteName}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-    case "Issued":
-      return (
-        <Button
-          className="w-full"
-          loading={act.isPending}
-          onClick={() => run("acknowledge")}
-        >
-          Supplier acknowledges
-        </Button>
-      );
-
-    case "SupplierResponding":
-      return (
-        <div className="space-y-3">
-          <Field label="Interim containment">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-          </Field>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            disabled={!text}
-            onClick={() => run("containment", { containment: text })}
-          >
-            Submit containment
-          </Button>
-        </div>
-      );
-
-    case "ContainmentSubmitted":
-      return (
-        <div className="space-y-3">
-          <Field label="Root cause method">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Source">
             <Select
-              value={rcm}
-              onChange={(e) => setRcm(e.target.value as RootCauseMethod)}
+              value={form.sourceType}
+              onChange={(e) =>
+                setForm({ ...form, sourceType: e.target.value as ScarSourceType })
+              }
             >
-              <option value="FiveWhys">5 Whys</option>
-              <option value="Fishbone">Fishbone</option>
-              <option value="FaultTree">Fault tree</option>
-              <option value="Other">Other</option>
+              {SOURCE_TYPES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </Select>
           </Field>
-          <Field label="Root cause analysis">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
+          <Field label="Severity" hint="Drives the response SLA">
+            <Select
+              value={form.severity}
+              onChange={(e) =>
+                setForm({ ...form, severity: e.target.value as Severity })
+              }
+            >
+              {SEVERITIES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
           </Field>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            disabled={!text}
-            onClick={() => run("root-cause", { rootCause: text, method: rcm })}
-          >
-            Submit root cause
+        </div>
+
+        <Field label="Title" hint="Required">
+          <Input
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+        </Field>
+        <Field label="Problem statement" hint="Required">
+          <Textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </Field>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={submit} loading={create.isPending} disabled={!valid}>
+            Create
           </Button>
         </div>
-      );
-
-    case "RootCauseSubmitted":
-      return (
-        <div className="space-y-3">
-          <Field label="Corrective action">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-          </Field>
-          <Field label="Preventive action">
-            <Textarea
-              value={text2}
-              onChange={(e) => setText2(e.target.value)}
-            />
-          </Field>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            disabled={!text}
-            onClick={() =>
-              run("action-plan", { corrective: text, preventive: text2 || null })
-            }
-          >
-            Submit action plan
-          </Button>
-        </div>
-      );
-
-    case "ActionPlanSubmitted":
-      return (
-        <Button
-          className="w-full"
-          loading={act.isPending}
-          onClick={() => run("submit-review")}
-        >
-          Submit for buyer review
-        </Button>
-      );
-
-    case "UnderReview":
-      return (
-        <div className="space-y-2">
-          <p className="text-sm text-gray-500">Buyer QA review decision.</p>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            onClick={() =>
-              run("review", { decision: "Accepted", effectivenessDue: null })
-            }
-          >
-            Accept
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            loading={act.isPending}
-            onClick={() =>
-              run("review", { decision: "Rejected", effectivenessDue: null })
-            }
-          >
-            Reject / request more info
-          </Button>
-        </div>
-      );
-
-    case "EffectivenessPending":
-      return (
-        <div className="space-y-2">
-          <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 ring-1 ring-amber-600/20">
-            Verifying effectiveness closes the SCAR (e-signature gated) and
-            returns the external license to the pool.
-          </div>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            onClick={() =>
-              run("effectiveness", { result: "Effective", esignatureId: null })
-            }
-          >
-            Effective — verify &amp; close
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            loading={act.isPending}
-            onClick={() =>
-              run("effectiveness", {
-                result: "NotEffective",
-                esignatureId: null,
-              })
-            }
-          >
-            Not effective — escalate
-          </Button>
-        </div>
-      );
-
-    case "Escalated":
-      return (
-        <div className="space-y-2">
-          <p className="text-sm text-gray-500">
-            Two ineffective cycles re-tier the supplier and move the site to
-            probation automatically.
-          </p>
-          <Button
-            className="w-full"
-            loading={act.isPending}
-            onClick={() => run("new-cycle")}
-          >
-            Start new response cycle
-          </Button>
-        </div>
-      );
-
-    case "Closed":
-      return (
-        <p className="text-sm text-gray-400">
-          This SCAR is closed. The record is locked and the external license has
-          been returned to the pool.
-        </p>
-      );
-
-    default:
-      return (
-        <p className="text-sm text-gray-400">No action available.</p>
-      );
-  }
+      </div>
+    </Modal>
+  );
 }
