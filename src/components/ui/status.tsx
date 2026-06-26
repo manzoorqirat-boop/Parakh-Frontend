@@ -6,6 +6,9 @@ import type {
   FindingClass,
   Criticality,
   QualStatus,
+  Severity,
+  ScorecardBand,
+  RiskTier,
 } from "@/types";
 
 // ---------- Generic badge ----------
@@ -90,6 +93,34 @@ const qualTone: Record<QualStatus, Parameters<typeof Badge>[0]["tone"]> = {
 };
 export function QualBadge({ value }: { value: QualStatus }) {
   return <Badge tone={qualTone[value]}>{humanize(value)}</Badge>;
+}
+
+const severityTone: Record<Severity, Parameters<typeof Badge>[0]["tone"]> = {
+  Critical: "danger",
+  Major: "warn",
+  Minor: "info",
+};
+export function SeverityBadge({ value }: { value: Severity }) {
+  return <Badge tone={severityTone[value]}>{value}</Badge>;
+}
+
+const bandTone: Record<ScorecardBand, Parameters<typeof Badge>[0]["tone"]> = {
+  Green: "ok",
+  Yellow: "warn",
+  Red: "danger",
+};
+export function BandBadge({ value }: { value: ScorecardBand }) {
+  return <Badge tone={bandTone[value]}>{value}</Badge>;
+}
+
+const riskTierTone: Record<RiskTier, Parameters<typeof Badge>[0]["tone"]> = {
+  Low: "ok",
+  Medium: "info",
+  High: "warn",
+  Critical: "danger",
+};
+export function RiskTierBadge({ value }: { value: RiskTier }) {
+  return <Badge tone={riskTierTone[value]}>{value}</Badge>;
 }
 
 // ---------- Lifecycle rail (the signature element) ----------
