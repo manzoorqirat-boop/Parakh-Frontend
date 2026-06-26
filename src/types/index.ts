@@ -232,3 +232,87 @@ export interface SupplierMaterialRow {
   siteName?: string | null;
   materialName?: string | null;
 }
+
+// ===================== SQM closed-loop + scorecard =====================
+export type Severity = "Critical" | "Major" | "Minor";
+export type ScarSourceType =
+  | "Sncr" | "AuditFinding" | "Complaint" | "ScorecardTrigger" | "Change" | "Manual";
+export type EffectivenessResultSqm = "Effective" | "NotEffective" | "Pending";
+export type ScorecardBand = "Green" | "Yellow" | "Red";
+export type RootCauseMethod = "FiveWhys" | "Fishbone" | "FaultTree" | "Other";
+export type BuyerReviewDecision = "Accepted" | "Rejected" | "NeedsInfo";
+export type ExternalLicenseState = "Pooled" | "Provisioned" | "Active" | "Inactive";
+
+export interface ScarListItem {
+  id: string;
+  recordNumber?: string | null;
+  title: string;
+  supplierSiteId: string;
+  sourceType: ScarSourceType;
+  severity: Severity;
+  priority: string;
+  issuedDate?: string | null;
+  responseDueDate?: string | null;
+  effectivenessResult: EffectivenessResultSqm;
+  escalationCount: number;
+  recurrenceFlag: boolean;
+  stateCode?: string | null;
+  siteName?: string | null;
+}
+
+export interface Scar {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  sourceType: ScarSourceType;
+  sourceRefId?: string | null;
+  title: string;
+  description: string;
+  severity: Severity;
+  priority: string;
+  issuedDate?: string | null;
+  responseDueDate?: string | null;
+  assignedExternalUserId?: string | null;
+  containmentAction?: string | null;
+  rootCause?: string | null;
+  rootCauseMethod?: RootCauseMethod | null;
+  correctiveAction?: string | null;
+  preventiveAction?: string | null;
+  buyerReviewDecision?: BuyerReviewDecision | null;
+  effectivenessResult: EffectivenessResultSqm;
+  escalationCount: number;
+  recurrenceFlag: boolean;
+  stateId?: string | null;
+}
+
+export interface ScarDetail {
+  scar: Scar;
+  stateCode?: string | null;
+  transitions: AvailableTransition[];
+}
+
+export interface ScorecardListItem {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  period: string;
+  weightedScore: number;
+  band: ScorecardBand;
+  prevBand?: ScorecardBand | null;
+  computedAt: string;
+  nextReviewDue?: string | null;
+  siteName?: string | null;
+}
+
+export interface Scorecard extends ScorecardListItem {
+  kpiValues: string;
+  kpiScores: string;
+  escalationsRaised?: string | null;
+}
+
+export interface PoolStatus {
+  active: number;
+  provisioned: number;
+  inactive: number;
+  total: number;
+}
