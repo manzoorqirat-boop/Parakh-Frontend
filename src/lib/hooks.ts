@@ -382,3 +382,145 @@ export function useQualifications(siteId?: string) {
       (await api.get("/qualifications", { params: { siteId } })).data,
   });
 }
+
+// ---------- SQM: SNCRs (supplier non-conformance) ----------
+export function useSncrs(siteId?: string) {
+  return useQuery({
+    queryKey: ["sncrs", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").SncrListItem[]>("/sncrs", {
+        params: { siteId },
+      })).data,
+  });
+}
+export function useCreateSncr() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/sncrs", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sncrs"] }),
+  });
+}
+
+// ---------- SQM: CoA inspections ----------
+export function useCoaInspections(siteId?: string) {
+  return useQuery({
+    queryKey: ["coa-inspections", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").CoaInspectionListItem[]>(
+        "/coa-inspections",
+        { params: { siteId } }
+      )).data,
+  });
+}
+export function useCreateCoaInspection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/coa-inspections", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["coa-inspections"] }),
+  });
+}
+export function useReviewCoa(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { overallResult: string; oosFlag: boolean }) =>
+      (await api.post(`/coa-inspections/${id}/review`, body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["coa-inspections"] }),
+  });
+}
+
+// ---------- SQM: Change notifications (change control) ----------
+export function useChangeNotifications(siteId?: string) {
+  return useQuery({
+    queryKey: ["change-notifications", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").ChangeNotificationListItem[]>(
+        "/change-notifications",
+        { params: { siteId } }
+      )).data,
+  });
+}
+export function useCreateChangeNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/change-notifications", body)).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["change-notifications"] }),
+  });
+}
+export function useAssessChange(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post(`/change-notifications/${id}/assess`, body)).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["change-notifications"] }),
+  });
+}
+
+// ---------- SQM: Quality agreements ----------
+export function useQualityAgreements(siteId?: string) {
+  return useQuery({
+    queryKey: ["quality-agreements", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").QualityAgreementListItem[]>(
+        "/quality-agreements",
+        { params: { siteId } }
+      )).data,
+  });
+}
+export function useCreateQualityAgreement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/quality-agreements", body)).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["quality-agreements"] }),
+  });
+}
+
+// ---------- SQM: Auditor profiles & roles ----------
+export function useAuditorProfiles() {
+  return useQuery({
+    queryKey: ["auditor-profiles"],
+    queryFn: async () =>
+      (await api.get<import("@/types").AuditorProfileItem[]>(
+        "/auditor-profiles"
+      )).data,
+  });
+}
+export function useCreateAuditorProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/auditor-profiles", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
+  });
+}
+export function useUpsertAuditorRole(profileId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { roleType: string; qualificationCriteria?: string | null }) =>
+      (await api.post(`/auditor-profiles/${profileId}/roles`, body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
+  });
+}
+export function useQualifyAuditorRole(profileId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (roleId: string) =>
+      (await api.post(`/auditor-profiles/${profileId}/roles/${roleId}/qualify`, {})).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
+  });
+}
+
+// ---------- Shared: lightweight site + material option lists for dropdowns ----------
+export function useSiteOptions() {
+  return useQuery({
+    queryKey: ["supplier-sites", "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").SupplierSite[]>("/supplier-sites")).data,
+  });
+}
