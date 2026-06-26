@@ -7,6 +7,11 @@ import {
   Package,
   AlertTriangle,
   Gauge,
+  FileWarning,
+  FlaskConical,
+  GitPullRequestArrow,
+  FileSignature,
+  UserCheck,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
@@ -17,8 +22,13 @@ const nav = [
   { to: "/suppliers", label: "Suppliers", icon: Building2 },
   { to: "/materials", label: "Materials", icon: Package },
   { to: "/scars", label: "SCARs", icon: AlertTriangle },
+  { to: "/sncrs", label: "SNCRs", icon: FileWarning },
+  { to: "/coa-inspections", label: "CoA Inspections", icon: FlaskConical },
+  { to: "/change-control", label: "Change Control", icon: GitPullRequestArrow },
+  { to: "/quality-agreements", label: "Quality Agreements", icon: FileSignature },
   { to: "/scorecards", label: "Scorecards", icon: Gauge },
   { to: "/audits", label: "Audits", icon: ClipboardCheck },
+  { to: "/auditors", label: "Auditors", icon: UserCheck },
   { to: "/capas", label: "CAPAs", icon: Wrench },
 ];
 
