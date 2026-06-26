@@ -148,3 +148,87 @@ export interface RiskHeatmapRow {
   criticality: Criticality;
   openFindings: number;
 }
+
+// ===================== SQM expansion =====================
+export type SupplierCategory =
+  | "Api" | "Excipient" | "Packaging" | "Component"
+  | "Cmo" | "Cro" | "Lab" | "Service" | "Logistics";
+export type ParentStatus = "Active" | "Inactive" | "Blocked";
+export type RiskTier = "Low" | "Medium" | "High" | "Critical";
+export type SiteType =
+  | "Manufacturing" | "Packaging" | "TestingLab" | "Warehouse" | "Service";
+export type GmpStatus = "Gmp" | "NonGmp" | "Unknown";
+export type RiskTierSource = "Computed" | "ManualOverride";
+export type MaterialType =
+  | "DrugSubstance" | "Excipient" | "Api" | "Component" | "Packaging" | "Reagent";
+export type SupplierMaterialStatus =
+  | "Pending" | "Approved" | "Conditional" | "Suspended" | "Disqualified";
+
+export interface SupplierParent {
+  id: string;
+  recordNumber?: string | null;
+  legalName: string;
+  displayName?: string | null;
+  dunsNumber?: string | null;
+  erpVendorId?: string | null;
+  category: SupplierCategory;
+  country: string;
+  parentStatus: ParentStatus;
+  riskTierRollup?: RiskTier | null;
+  website?: string | null;
+  siteCount?: number;
+}
+
+export interface SupplierSite {
+  id: string;
+  recordNumber?: string | null;
+  parentId: string;
+  siteName: string;
+  address?: string | null;
+  siteType: SiteType;
+  gmpStatus: GmpStatus;
+  riskTier: RiskTier;
+  riskTierSource?: RiskTierSource;
+  stateId?: string | null;
+  stateCode?: string | null;
+  qualifiedDate?: string | null;
+  requalificationDue?: string | null;
+}
+
+export interface AvailableTransition {
+  transitionId: string;
+  trigger: string;
+  label?: string | null;
+  toStateId: string;
+  toStateCode: string;
+  requiresEsignature: boolean;
+  requiresReason: boolean;
+}
+
+export interface SupplierSiteDetail {
+  site: SupplierSite;
+  stateCode?: string | null;
+  transitions: AvailableTransition[];
+}
+
+export interface Material {
+  id: string;
+  recordNumber?: string | null;
+  materialCode: string;
+  name: string;
+  materialType: MaterialType;
+  criticalityClass: Criticality;
+}
+
+export interface SupplierMaterialRow {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  materialId: string;
+  approvalStatus: SupplierMaterialStatus;
+  approvedDate?: string | null;
+  requalificationDue?: string | null;
+  onAsl: boolean;
+  siteName?: string | null;
+  materialName?: string | null;
+}
