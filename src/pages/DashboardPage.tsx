@@ -82,11 +82,13 @@ export function DashboardPage() {
     ok: "text-[var(--color-ok)] bg-green-50",
   };
 
-  const chartData = (data.auditsByStatus ?? []).map((s) => ({
-    name: humanize(s.status),
-    status: s.status,
-    count: s.count,
-  }));
+  const chartData = (Array.isArray(data.auditsByStatus) ? data.auditsByStatus : []).map(
+    (s) => ({
+      name: humanize(s.status),
+      status: s.status,
+      count: s.count,
+    })
+  );
 
   return (
     <>
@@ -169,7 +171,7 @@ export function DashboardPage() {
           <CardBody className="p-0">
             {heatmap.isLoading ? (
               <Spinner />
-            ) : !heatmap.data || heatmap.data.length === 0 ? (
+            ) : !Array.isArray(heatmap.data) || heatmap.data.length === 0 ? (
               <div className="p-5">
                 <EmptyState
                   title="No vendors yet"
