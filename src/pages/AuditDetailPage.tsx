@@ -219,10 +219,24 @@ function ScheduleModal({
   const [leadAuditorId, setLead] = useState("");
 
   async function submit() {
+    const lead = leadAuditorId.trim();
+    // Lead auditor is optional. If provided, it must be a valid GUID, otherwise
+    // the backend rejects the whole request with a generic validation error.
+    const guidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (lead && !guidRe.test(lead)) {
+      toast.push("Lead auditor ID must be a valid user GUID, or left blank.", "error");
+      return;
+    }
     try {
       await action.mutateAsync({
         path: "schedule",
-        body: { from, to, leadAuditorId, teamUserIds: [] },
+        body: {
+          from,
+          to,
+          leadAuditorId: lead || null,
+          teamUserIds: [],
+        },
       });
       toast.push("Audit scheduled");
       onClose();
@@ -242,7 +256,7 @@ function ScheduleModal({
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </Field>
         </div>
-        <Field label="Lead auditor ID" hint="User GUID of the lead auditor">
+        <Field label="Lead auditor ID (optional)" hint="Paste a user GUID, or leave blank to schedule without a lead">
           <Input
             value={leadAuditorId}
             onChange={(e) => setLead(e.target.value)}
