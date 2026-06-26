@@ -28,6 +28,11 @@ import { MaterialsPage } from "@/pages/MaterialsPage";
 import { ScarsPage } from "@/pages/ScarsPage";
 import { ScarDetailPage } from "@/pages/ScarDetailPage";
 import { ScorecardsPage } from "@/pages/ScorecardsPage";
+import { SncrsPage } from "@/pages/SncrsPage";
+import { CoaInspectionsPage } from "@/pages/CoaInspectionsPage";
+import { ChangeNotificationsPage } from "@/pages/ChangeNotificationsPage";
+import { QualityAgreementsPage } from "@/pages/QualityAgreementsPage";
+import { AuditorsPage } from "@/pages/AuditorsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +78,11 @@ const router = createBrowserRouter([
           { path: "/scars", element: <ScarsPage /> },
           { path: "/scars/:id", element: <ScarDetailPage /> },
           { path: "/scorecards", element: <ScorecardsPage /> },
+          { path: "/sncrs", element: <SncrsPage /> },
+          { path: "/coa-inspections", element: <CoaInspectionsPage /> },
+          { path: "/change-control", element: <ChangeNotificationsPage /> },
+          { path: "/quality-agreements", element: <QualityAgreementsPage /> },
+          { path: "/auditors", element: <AuditorsPage /> },
           { path: "/auditees", element: <AuditeesPage /> },
           { path: "/auditees/:id", element: <AuditeeDetailPage /> },
           { path: "/audits", element: <AuditsPage /> },
