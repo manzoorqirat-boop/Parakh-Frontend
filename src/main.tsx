@@ -24,6 +24,9 @@ import { SuppliersPage } from "@/pages/SuppliersPage";
 import { SupplierDetailPage } from "@/pages/SupplierDetailPage";
 import { SiteDetailPage } from "@/pages/SiteDetailPage";
 import { MaterialsPage } from "@/pages/MaterialsPage";
+import { ScarsPage } from "@/pages/ScarsPage";
+import { ScarDetailPage } from "@/pages/ScarDetailPage";
+import { ScorecardsPage } from "@/pages/ScorecardsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +68,9 @@ const router = createBrowserRouter([
           { path: "/suppliers/:id", element: <SupplierDetailPage /> },
           { path: "/suppliers/:parentId/sites/:siteId", element: <SiteDetailPage /> },
           { path: "/materials", element: <MaterialsPage /> },
+          { path: "/scars", element: <ScarsPage /> },
+          { path: "/scars/:id", element: <ScarDetailPage /> },
+          { path: "/scorecards", element: <ScorecardsPage /> },
           { path: "/auditees", element: <AuditeesPage /> },
           { path: "/auditees/:id", element: <AuditeeDetailPage /> },
           { path: "/audits", element: <AuditsPage /> },
