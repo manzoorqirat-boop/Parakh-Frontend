@@ -20,6 +20,10 @@ import { AuditsPage } from "@/pages/AuditsPage";
 import { AuditDetailPage } from "@/pages/AuditDetailPage";
 import { CapasPage } from "@/pages/CapasPage";
 import { CapaDetailPage } from "@/pages/CapaDetailPage";
+import { SuppliersPage } from "@/pages/SuppliersPage";
+import { SupplierDetailPage } from "@/pages/SupplierDetailPage";
+import { SiteDetailPage } from "@/pages/SiteDetailPage";
+import { MaterialsPage } from "@/pages/MaterialsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +61,10 @@ const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: "/", element: <DashboardPage /> },
+          { path: "/suppliers", element: <SuppliersPage /> },
+          { path: "/suppliers/:id", element: <SupplierDetailPage /> },
+          { path: "/suppliers/:parentId/sites/:siteId", element: <SiteDetailPage /> },
+          { path: "/materials", element: <MaterialsPage /> },
           { path: "/auditees", element: <AuditeesPage /> },
           { path: "/auditees/:id", element: <AuditeeDetailPage /> },
           { path: "/audits", element: <AuditsPage /> },
