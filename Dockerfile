@@ -2,28 +2,26 @@
 FROM node:20-slim AS build
 WORKDIR /app
 
-# Install dependencies first (better layer caching).
-# Copy manifests; lockfile is optional. We force a clean install that
-# INCLUDES optional native binaries (@tailwindcss/oxide-linux-x64-gnu,
-# lightningcss-linux-x64-gnu) to avoid npm's optional-dependency bug
-# (npm/cli#4828) that breaks Tailwind v4 on Linux.
+# VITE_API_URL must be available AT BUILD TIME because Vite bakes env vars
+# into the bundle. Railway passes service variables as build args when a
+# variable of the same name exists on the service. We re-export it as an
+# ENV so `npm run build` (vite) can read import.meta.env.VITE_API_URL.
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
+# Install deps (force optional native binaries: @tailwindcss/oxide etc.)
 COPY package.json package-lock.json* ./
 RUN npm install --include=optional
 
-# Copy source and build.
+# Build
 COPY . .
 RUN npm run build
 
 # ---- Runtime stage ----
 FROM node:20-slim AS runtime
 WORKDIR /app
-
-# 'serve' hosts the static SPA build.
 RUN npm install -g serve
-
 COPY --from=build /app/dist ./dist
-
-# Railway provides $PORT at runtime.
 ENV PORT=8080
 EXPOSE 8080
 CMD ["sh", "-c", "serve -s dist -l ${PORT}"]
