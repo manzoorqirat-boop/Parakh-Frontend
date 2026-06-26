@@ -111,6 +111,19 @@ function CreateAgreementModal({ open, onClose }: { open: boolean; onClose: () =>
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  // `responsibilityMatrix` is a jsonb column. Send valid JSON if the user typed
+  // it, otherwise wrap their text as a JSON string so it's always valid jsonb.
+  function toJsonb(text: string): string | null {
+    const t = text.trim();
+    if (!t) return null;
+    try {
+      JSON.parse(t);
+      return t;
+    } catch {
+      return JSON.stringify(t);
+    }
+  }
+
   async function submit() {
     try {
       await create.mutateAsync({
@@ -118,7 +131,7 @@ function CreateAgreementModal({ open, onClose }: { open: boolean; onClose: () =>
         documentRef: form.documentRef || null,
         effectiveDate: form.effectiveDate || null,
         expiryDate: form.expiryDate || null,
-        responsibilityMatrix: form.responsibilityMatrix || null,
+        responsibilityMatrix: toJsonb(form.responsibilityMatrix),
         status: form.status,
       });
       toast.push("Quality agreement created");
