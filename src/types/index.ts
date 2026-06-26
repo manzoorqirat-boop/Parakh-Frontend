@@ -316,3 +316,103 @@ export interface PoolStatus {
   inactive: number;
   total: number;
 }
+
+// =====================================================================
+//  Quality events & collaboration modules (added: full UI coverage)
+// =====================================================================
+
+// ----- Enums (string names matching backend JsonStringEnumConverter) -----
+export type DefectCategory =
+  | "Oos"
+  | "Damage"
+  | "Labeling"
+  | "Documentation"
+  | "Contamination"
+  | "Quantity"
+  | "Other";
+export type SncrDisposition =
+  | "Reject"
+  | "Return"
+  | "UseAsIs"
+  | "Rework"
+  | "Scrap";
+export type CoaResult = "Pass" | "Fail" | "PendingReview";
+export type ChangeIntakeChannel = "EmailProcessor" | "Portal" | "Manual";
+export type ChangeType =
+  | "Process"
+  | "SiteLocation"
+  | "RawMaterial"
+  | "Equipment"
+  | "Ownership"
+  | "Spec"
+  | "Other";
+export type ImpactLevel = "None" | "Low" | "Medium" | "High";
+export type ChangeDecision = "Accepted" | "Rejected" | "NoAction";
+export type QualityAgreementStatus =
+  | "Draft"
+  | "Active"
+  | "Expired"
+  | "Terminated";
+
+// ----- SNCR -----
+export interface SncrListItem {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  materialId: string;
+  batchLot?: string | null;
+  defectCategory: DefectCategory;
+  severity: Severity;
+  disposition?: SncrDisposition | null;
+  scarId?: string | null;
+}
+
+// ----- CoA Inspection -----
+export interface CoaInspectionListItem {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  materialId: string;
+  batchLot?: string | null;
+  overallResult: CoaResult;
+  oosFlag: boolean;
+  reviewedDate?: string | null;
+}
+
+// ----- Change Notification -----
+export interface ChangeNotificationListItem {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  intakeChannel: ChangeIntakeChannel;
+  changeType: ChangeType;
+  impactLevel?: ImpactLevel | null;
+  decision?: ChangeDecision | null;
+  stateCode?: string | null;
+}
+
+// ----- Quality Agreement -----
+export interface QualityAgreementListItem {
+  id: string;
+  recordNumber?: string | null;
+  supplierSiteId: string;
+  effectiveDate?: string | null;
+  expiryDate?: string | null;
+  status: QualityAgreementStatus;
+}
+
+// ----- Auditor -----
+export interface AuditorRoleItem {
+  id: string;
+  roleType: string;
+  qualified: boolean;
+  qualifiedDate?: string | null;
+}
+export interface AuditorProfileItem {
+  id: string;
+  recordNumber?: string | null;
+  fullName: string;
+  userId?: string | null;
+  isActive: boolean;
+  roles: AuditorRoleItem[];
+}
