@@ -1,0 +1,51 @@
+name: build-check
+
+# Runs the same build Railway runs (tsc -b && vite build) on every push.
+# A truncated .tsx, a broken @/ import, or an empty package.json turns
+# this check RED before Railway wastes a deploy.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 'npm ci' is intentional: it fails hard if package.json and
+      # package-lock.json disagree, which catches a half-committed manifest.
+      - name: Install
+        run: npm ci
+
+      # Reject the exact bug you hit: a stray/empty package.json inside src,
+      # or any 0-byte source file from a dropped web commit.
+      - name: Reject stray / empty source files
+        run: |
+          if [ -e src/package.json ]; then
+            echo "::error::src/package.json should not exist (stray file). Delete it."
+            exit 1
+          fi
+          empty=$(git ls-files 'src/**/*.ts' 'src/**/*.tsx' 'src/**/*.css' '*.json' '*.ts' | while read f; do
+            [ -s "$f" ] || echo "$f"
+          done)
+          if [ -n "$empty" ]; then
+            echo "::error::Empty (likely truncated) files committed:"
+            echo "$empty"
+            exit 1
+          fi
+          echo "No stray or empty source files."
+
+      - name: Type-check + build
+        run: npm run build
