@@ -82,7 +82,7 @@ export function DashboardPage() {
     ok: "text-[var(--color-ok)] bg-green-50",
   };
 
-  const chartData = data.auditsByStatus.map((s) => ({
+  const chartData = (data.auditsByStatus ?? []).map((s) => ({
     name: humanize(s.status),
     status: s.status,
     count: s.count,
