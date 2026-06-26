@@ -291,3 +291,94 @@ export function useUpdateSupplierMaterial(id: string) {
       qc.invalidateQueries({ queryKey: ["supplier-materials"] }),
   });
 }
+
+// ---------- SQM: SCARs (closed loop) ----------
+export function useScars(params: { siteId?: string } = {}) {
+  return useQuery({
+    queryKey: ["scars", params.siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").ScarListItem[]>("/scars", { params })).data,
+  });
+}
+export function useScar(id: string | undefined) {
+  return useQuery({
+    queryKey: ["scar", id],
+    enabled: !!id,
+    queryFn: async () =>
+      (await api.get<import("@/types").ScarDetail>(`/scars/${id}`)).data,
+  });
+}
+export function useCreateScar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) =>
+      (await api.post("/scars", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["scars"] }),
+  });
+}
+// Generic SCAR action: posts to a sub-route and refreshes detail + list.
+export function useScarAction(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      path,
+      body,
+    }: {
+      path: string;
+      body?: Record<string, unknown>;
+    }) => (await api.post(`/scars/${id}/${path}`, body ?? {})).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scar", id] });
+      qc.invalidateQueries({ queryKey: ["scars"] });
+    },
+  });
+}
+
+// ---------- SQM: Scorecards (the differentiator) ----------
+export function useScorecards(siteId?: string) {
+  return useQuery({
+    queryKey: ["scorecards", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get<import("@/types").ScorecardListItem[]>("/scorecards", {
+        params: { siteId },
+      })).data,
+  });
+}
+export function useComputeScorecard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { supplierSiteId: string; period: string }) =>
+      (await api.post("/scorecards/compute", body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scorecards"] });
+      qc.invalidateQueries({ queryKey: ["scars"] });
+      qc.invalidateQueries({ queryKey: ["supplier-sites"] });
+    },
+  });
+}
+
+// ---------- SQM: External collaboration pool ----------
+export function useExternalPool() {
+  return useQuery({
+    queryKey: ["external-pool"],
+    queryFn: async () =>
+      (await api.get<import("@/types").PoolStatus>("/external-collaboration/pool"))
+        .data,
+  });
+}
+
+// ---------- SQM: Risk assessments & qualifications ----------
+export function useRiskAssessments(siteId?: string) {
+  return useQuery({
+    queryKey: ["risk-assessments", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get("/risk-assessments", { params: { siteId } })).data,
+  });
+}
+export function useQualifications(siteId?: string) {
+  return useQuery({
+    queryKey: ["qualifications", siteId ?? "all"],
+    queryFn: async () =>
+      (await api.get("/qualifications", { params: { siteId } })).data,
+  });
+}
