@@ -58,7 +58,7 @@ export function CoaInspectionsPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] whitespace-nowrap text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Record</th>
@@ -95,7 +95,7 @@ export function CoaInspectionsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -182,7 +182,7 @@ function CreateCoaModal({ open, onClose }: { open: boolean; onClose: () => void 
             ))}
           </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Batch / Lot">
             <Input value={form.batchLot} onChange={(e) => set("batchLot", e.target.value)} />
           </Field>
