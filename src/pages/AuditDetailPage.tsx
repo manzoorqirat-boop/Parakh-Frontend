@@ -234,7 +234,7 @@ function ScheduleModal({
   return (
     <Modal open={open} onClose={onClose} title="Schedule audit">
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="From">
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </Field>
