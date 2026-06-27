@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, FileSignature } from "lucide-react";
-import { useAudit, useAuditAction, useUsers } from "@/lib/hooks";
+import { useAudit, useAuditAction } from "@/lib/hooks";
 import {
   Button,
   Card,
@@ -213,7 +213,6 @@ function ScheduleModal({
   auditId: string;
 }) {
   const action = useAuditAction(auditId);
-  const users = useUsers();
   const toast = useToast();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -223,13 +222,7 @@ function ScheduleModal({
     try {
       await action.mutateAsync({
         path: "schedule",
-        body: {
-          from,
-          to,
-          // Dropdown supplies a real user GUID (or "" -> null for no lead).
-          leadAuditorId: leadAuditorId || null,
-          teamUserIds: [],
-        },
+        body: { from, to, leadAuditorId, teamUserIds: [] },
       });
       toast.push("Audit scheduled");
       onClose();
@@ -241,7 +234,7 @@ function ScheduleModal({
   return (
     <Modal open={open} onClose={onClose} title="Schedule audit">
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="From">
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </Field>
@@ -249,15 +242,12 @@ function ScheduleModal({
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </Field>
         </div>
-        <Field label="Lead auditor (optional)" hint="Pick a user, or leave blank to schedule without a lead">
-          <Select value={leadAuditorId} onChange={(e) => setLead(e.target.value)}>
-            <option value="">— No lead auditor —</option>
-            {users.data?.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.fullName} ({u.email})
-              </option>
-            ))}
-          </Select>
+        <Field label="Lead auditor ID" hint="User GUID of the lead auditor">
+          <Input
+            value={leadAuditorId}
+            onChange={(e) => setLead(e.target.value)}
+            placeholder="00000000-0000-0000-0000-000000000000"
+          />
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
