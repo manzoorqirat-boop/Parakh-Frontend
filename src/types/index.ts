@@ -4,6 +4,20 @@ export type AuditeeType = "Supplier" | "Cmo" | "Cro" | "InternalDept";
 export type Criticality = "Critical" | "Major" | "Minor";
 export type QualStatus = "Approved" | "Conditional" | "Disqualified" | "Pending";
 export type AuditType = "Onsite" | "Remote" | "Postal" | "ForCause" | "Internal";
+export type AuditCategory =
+  | "FirstTime"
+  | "Periodic"
+  | "FollowUp"
+  | "ForCause"
+  | "Desk";
+export type AuditClass = "A" | "B" | "C";
+export type AuditClassSource = "Auto" | "Manual";
+export type AuditOutcome =
+  | "Pending"
+  | "Acceptable"
+  | "NotAcceptable"
+  | "Approved"
+  | "NotApproved";
 export type AuditStatus =
   | "Planned"
   | "Scheduled"
@@ -72,6 +86,8 @@ export interface AuditListItem {
   auditNo: string;
   status: AuditStatus;
   type: AuditType;
+  category?: AuditCategory;
+  outcome?: AuditOutcome;
   auditee: string;
   scheduledFrom?: string | null;
   scheduledTo?: string | null;
@@ -91,6 +107,13 @@ export interface AuditDetail {
   auditNo: string;
   status: AuditStatus;
   type: AuditType;
+  category: AuditCategory;
+  class: AuditClass;
+  classSource: AuditClassSource;
+  outcome: AuditOutcome;
+  outcomeEvaluatedAt?: string | null;
+  parentAuditId?: string | null;
+  supplierSiteId?: string | null;
   scope?: string | null;
   objective?: string | null;
   scheduledFrom?: string | null;
@@ -100,6 +123,17 @@ export interface AuditDetail {
   leadAuditorId?: string | null;
   auditee: Auditee;
   findings: Finding[];
+}
+
+export interface AuditIntimation {
+  id: string;
+  auditId: string;
+  reason: string;
+  criticalCount: number;
+  majorCount: number;
+  recipients?: string | null;
+  riskAssessmentId?: string | null;
+  materialAlreadyProcured: boolean;
 }
 
 // ----- CAPA -----
