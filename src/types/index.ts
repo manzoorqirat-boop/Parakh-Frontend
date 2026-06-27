@@ -39,6 +39,51 @@ export type ComplianceResult =
   | "PartiallyCompliant"
   | "NotApplicable";
 export type EffectivenessResult = "Effective" | "NotEffective" | "Pending";
+
+// ----- P1 additions -----
+export type ComplianceReportStatus = "Awaited" | "Received" | "Closed" | "Overdue";
+export type AdequacyDecision = "Pending" | "Adequate" | "Inadequate";
+export type ComplianceVerificationMethod = "DocumentEvidence" | "FollowUpAudit";
+export type DesignationLevel =
+  | "Executive"
+  | "SeniorExecutive"
+  | "AssistantManager"
+  | "Manager"
+  | "SeniorManager"
+  | "GeneralManager"
+  | "Director";
+
+export interface ComplianceReport {
+  id: string;
+  auditId: string;
+  reportNo: string;
+  requestedOn: string;
+  workingDaysAllowed: number;
+  dueOn: string;
+  receivedOn?: string | null;
+  status: ComplianceReportStatus;
+  adequacy: AdequacyDecision;
+  verificationMethod?: ComplianceVerificationMethod | null;
+  reviewedOn?: string | null;
+  reviewNotes?: string | null;
+  followUpAuditId?: string | null;
+}
+
+export interface WorkingCalendar {
+  monday: boolean;
+  tuesday: boolean;
+  wednesday: boolean;
+  thursday: boolean;
+  friday: boolean;
+  saturday: boolean;
+  sunday: boolean;
+}
+
+export interface Holiday {
+  id: string;
+  date: string;
+  name?: string | null;
+}
 export type EsignStatus =
   | "Requested"
   | "InProgress"
