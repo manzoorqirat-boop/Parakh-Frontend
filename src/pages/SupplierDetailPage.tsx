@@ -53,7 +53,7 @@ export function SupplierDetailPage() {
       <Card className="mb-5">
         <CardHeader title="Company details" />
         <CardBody>
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm md:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 md:grid-cols-3">
             <Detail label="Display name" value={parent.displayName} />
             <Detail label="DUNS" value={parent.dunsNumber} />
             <Detail label="ERP vendor ID" value={parent.erpVendorId} />
@@ -81,7 +81,7 @@ export function SupplierDetailPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] whitespace-nowrap text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Site</th>
@@ -121,7 +121,7 @@ export function SupplierDetailPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -194,7 +194,7 @@ function CreateSiteModal({
             placeholder="Street, city, region, postal, country"
           />
         </Field>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Site type">
             <Select value={form.siteType} onChange={(e) => set("siteType", e.target.value as SiteType)}>
               <option value="Manufacturing">Manufacturing</option>
