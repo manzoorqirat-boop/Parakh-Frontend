@@ -42,7 +42,7 @@ export function AuditeeDetailPage() {
 
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-xl font-bold text-[var(--pk-navy)]">{data.name}</h1>
             <CriticalityBadge value={data.criticality} />
             <QualBadge value={data.qualStatus} />
