@@ -13,6 +13,7 @@ import {
   FileSignature,
   Users,
   BarChart3,
+  Database,
   LogOut,
   Menu,
   X,
@@ -33,6 +34,7 @@ const nav = [
   { to: "/change-control", label: "Change Notifications", icon: GitPullRequestArrow },
   { to: "/quality-agreements", label: "Quality Agreements", icon: FileSignature },
   { to: "/scorecards", label: "Scorecards", icon: BarChart3 },
+  { to: "/master-data", label: "Master data", icon: Database },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
