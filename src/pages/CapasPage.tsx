@@ -76,7 +76,7 @@ export function CapasPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">CAPA no.</th>
@@ -120,7 +120,7 @@ export function CapasPage() {
                   );
                 })}
               </tbody>
-            </table></div>
+            </table>
           </CardBody>
         </Card>
       )}
