@@ -24,7 +24,7 @@ export function Modal({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-20">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 pt-6 sm:p-4 sm:pt-20">
       <div
         className={cn(
           "w-full rounded-xl border border-[var(--pk-line)] bg-white shadow-xl",
@@ -33,7 +33,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-center justify-between border-b border-[var(--pk-line)] px-5 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--pk-line)] px-4 py-3 sm:px-5">
           <h2 className="text-sm font-semibold text-[var(--pk-navy)]">{title}</h2>
           <button
             onClick={onClose}
@@ -43,7 +43,7 @@ export function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5">{children}</div>
       </div>
     </div>
   );
