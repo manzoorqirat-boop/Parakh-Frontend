@@ -54,7 +54,7 @@ export function SuppliersPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Legal name</th>
@@ -92,7 +92,7 @@ export function SuppliersPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -137,7 +137,7 @@ function CreateSupplierModal({ open, onClose }: { open: boolean; onClose: () => 
         <Field label="Legal name">
           <Input value={form.legalName} onChange={(e) => set("legalName", e.target.value)} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Display name">
             <Input value={form.displayName} onChange={(e) => set("displayName", e.target.value)} />
           </Field>
@@ -154,7 +154,7 @@ function CreateSupplierModal({ open, onClose }: { open: boolean; onClose: () => 
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Country" hint="ISO country">
             <Input value={form.country} onChange={(e) => set("country", e.target.value)} />
           </Field>
@@ -162,7 +162,7 @@ function CreateSupplierModal({ open, onClose }: { open: boolean; onClose: () => 
             <Input value={form.dunsNumber} onChange={(e) => set("dunsNumber", e.target.value)} />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="ERP vendor ID">
             <Input value={form.erpVendorId} onChange={(e) => set("erpVendorId", e.target.value)} />
           </Field>
