@@ -107,6 +107,23 @@ export function CardBody({
   return <div className={cn("p-5", className)}>{children}</div>;
 }
 
+// ---------- Responsive table wrapper ----------
+// Wraps a <table> so it scrolls horizontally on narrow screens instead of
+// breaking the layout. Use: <TableScroll><table>…</table></TableScroll>
+export function TableScroll({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("w-full overflow-x-auto", className)}>
+      <div className="min-w-[640px]">{children}</div>
+    </div>
+  );
+}
+
 // ---------- Input / Select / Textarea ----------
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
