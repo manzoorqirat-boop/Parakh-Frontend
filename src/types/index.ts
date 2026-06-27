@@ -416,3 +416,19 @@ export interface AuditorProfileItem {
   isActive: boolean;
   roles: AuditorRoleItem[];
 }
+
+// ----- Users (for people-pickers / dropdowns) -----
+export interface UserOption {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+// ----- Findings (for CAPA finding-picker) -----
+export interface FindingOption {
+  id: string;
+  findingNo: string;
+  classification: FindingClass;
+  description: string;
+  auditId: string;
+}
