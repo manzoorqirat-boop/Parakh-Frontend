@@ -432,3 +432,122 @@ export interface FindingOption {
   description: string;
   auditId: string;
 }
+
+// ===========================================================================
+//  Master Data Management (MDM)
+//  Mirrors Parakh.Api.MasterData DTOs. Keep in sync with the C# records.
+// ===========================================================================
+export type MasterEntityType =
+  | "SupplierParent"
+  | "SupplierSite"
+  | "Material"
+  | "Auditor"
+  | "User"
+  | "ClinicalMaster";
+
+export type ImportSource = "Manual" | "Excel" | "SapOData" | "ErpRest";
+
+export type ImportRunStatus =
+  | "Draft"
+  | "Validated"
+  | "Committed"
+  | "Failed"
+  | "Cancelled";
+
+export type ImportRowState =
+  | "Pending"
+  | "Valid"
+  | "Invalid"
+  | "Created"
+  | "Updated"
+  | "Skipped";
+
+export type ErpKind = "SapS4HanaOData" | "SapEccGateway" | "GenericRest";
+
+export interface FieldDef {
+  key: string;
+  label: string;
+  type: "text" | "number" | "date" | "email" | "select" | "bool";
+  required: boolean;
+  hint?: string | null;
+  options?: string[] | null;
+  externalKey?: string | null;
+}
+
+export interface EntitySchema {
+  entityType: MasterEntityType;
+  label: string;
+  keyField: string;
+  fields: FieldDef[];
+}
+
+export interface ImportRun {
+  id: string;
+  entityType: MasterEntityType;
+  source: ImportSource;
+  status: ImportRunStatus;
+  sourceLabel?: string | null;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  notes?: string | null;
+  createdUtc: string;
+  committedUtc?: string | null;
+}
+
+export interface RowError {
+  field: string;
+  message: string;
+}
+
+export interface ImportRowView {
+  id: string;
+  rowNumber: number;
+  state: ImportRowState;
+  payload: Record<string, unknown>;
+  externalKey?: string | null;
+  errors: RowError[];
+}
+
+export interface ImportRunDetail {
+  run: ImportRun;
+  rows: ImportRowView[];
+}
+
+export interface ErpConnection {
+  id: string;
+  name: string;
+  kind: ErpKind;
+  baseUrl: string;
+  supplierEntitySet?: string | null;
+  materialEntitySet?: string | null;
+  authMode: string;
+  username?: string | null;
+  tokenUrl?: string | null;
+  isActive: boolean;
+  lastSyncUtc?: string | null;
+  lastTestUtc?: string | null;
+  lastTestResult?: string | null;
+}
+
+export interface ErpConnectionUpsert {
+  name: string;
+  kind: ErpKind;
+  baseUrl: string;
+  supplierEntitySet?: string | null;
+  materialEntitySet?: string | null;
+  authMode: string;
+  username?: string | null;
+  secret?: string | null;
+  tokenUrl?: string | null;
+  isActive: boolean;
+}
+
+export interface ErpTestResult {
+  ok: boolean;
+  message: string;
+  sampleCount?: number | null;
+}
