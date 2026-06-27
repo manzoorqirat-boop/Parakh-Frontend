@@ -21,7 +21,7 @@ import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
 import { fmtDate, humanize } from "@/lib/utils";
-import type { AuditType } from "@/types";
+import type { AuditType, AuditCategory, AuditClass } from "@/types";
 
 const AUDIT_STATUSES = [
   "Planned",
@@ -143,15 +143,27 @@ function CreateAuditModal({
   const toast = useToast();
   const [auditeeId, setAuditeeId] = useState("");
   const [type, setType] = useState<AuditType>("Onsite");
+  const [category, setCategory] = useState<AuditCategory>("FirstTime");
+  // Empty string = let the backend auto-derive the class from the auditee.
+  const [klass, setKlass] = useState<AuditClass | "">("");
   const [scope, setScope] = useState("");
   const [objective, setObjective] = useState("");
 
   async function submit() {
     try {
-      await create.mutateAsync({ auditeeId, type, scope, objective });
+      await create.mutateAsync({
+        auditeeId,
+        type,
+        category,
+        scope,
+        objective,
+        ...(klass ? { class: klass } : {}),
+      });
       toast.push("Audit created");
       onClose();
       setAuditeeId("");
+      setCategory("FirstTime");
+      setKlass("");
       setScope("");
       setObjective("");
     } catch (e) {
@@ -179,6 +191,29 @@ function CreateAuditModal({
             <option value="Postal">Postal / questionnaire</option>
             <option value="ForCause">For cause</option>
             <option value="Internal">Internal</option>
+          </Select>
+        </Field>
+        <Field label="Audit category">
+          <Select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as AuditCategory)}
+          >
+            <option value="FirstTime">First time</option>
+            <option value="Periodic">Periodic</option>
+            <option value="FollowUp">Follow-up</option>
+            <option value="ForCause">For cause</option>
+            <option value="Desk">Desk audit</option>
+          </Select>
+        </Field>
+        <Field label="Audit class">
+          <Select
+            value={klass}
+            onChange={(e) => setKlass(e.target.value as AuditClass | "")}
+          >
+            <option value="">Auto (derive from auditee)</option>
+            <option value="A">A — API</option>
+            <option value="B">B — KSM / intermediate / excipient / primary packaging</option>
+            <option value="C">C — Others</option>
           </Select>
         </Field>
         <Field label="Scope">
