@@ -50,7 +50,7 @@ export function MaterialsPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -73,7 +73,7 @@ export function MaterialsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table></div>
+            </table>
           </CardBody>
         </Card>
       )}
@@ -112,7 +112,7 @@ function CreateMaterialModal({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={onClose} title="New material">
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Name">
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
           </Field>
@@ -120,7 +120,7 @@ function CreateMaterialModal({ open, onClose }: { open: boolean; onClose: () => 
             <Input value={form.materialCode} onChange={(e) => set("materialCode", e.target.value)} />
           </Field>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Type">
             <Select
               value={form.materialType}
