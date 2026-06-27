@@ -17,6 +17,9 @@ import type {
   SupplierSiteDetail,
   Material,
   SupplierMaterialRow,
+  ComplianceReport,
+  AdequacyDecision,
+  ComplianceVerificationMethod,
 } from "@/types";
 
 // ---------- Dashboard ----------
@@ -112,6 +115,51 @@ export function useAuditAction(id: string) {
       qc.invalidateQueries({ queryKey: ["audits"] });
     },
   });
+}
+
+// ----- Compliance report (§5.7) -----
+export function useComplianceReport(auditId: string) {
+  return useQuery({
+    queryKey: ["compliance", auditId],
+    queryFn: async () => {
+      const res = await api.get<ComplianceReport | "">(`/audits/${auditId}/compliance-report`);
+      return res.data || null;
+    },
+  });
+}
+
+export function useComplianceAction(auditId: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["compliance", auditId] });
+    qc.invalidateQueries({ queryKey: ["audit", auditId] });
+  };
+  return {
+    request: useMutation({
+      mutationFn: async (workingDays?: number) =>
+        (await api.post(`/audits/${auditId}/compliance-report`, { workingDays })).data,
+      onSuccess: refresh,
+    }),
+    received: useMutation({
+      mutationFn: async (v: { reportId: string; receivedOn: string }) =>
+        (await api.post(`/compliance-reports/${v.reportId}/received`, { receivedOn: v.receivedOn })).data,
+      onSuccess: refresh,
+    }),
+    review: useMutation({
+      mutationFn: async (v: {
+        reportId: string;
+        adequacy: AdequacyDecision;
+        verificationMethod?: ComplianceVerificationMethod;
+        notes?: string;
+      }) =>
+        (await api.post(`/compliance-reports/${v.reportId}/review`, {
+          adequacy: v.adequacy,
+          verificationMethod: v.verificationMethod,
+          notes: v.notes,
+        })).data,
+      onSuccess: refresh,
+    }),
+  };
 }
 
 // ---------- CAPAs ----------
