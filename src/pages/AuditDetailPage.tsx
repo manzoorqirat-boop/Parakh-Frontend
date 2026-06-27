@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, FileSignature } from "lucide-react";
-import { useAudit, useAuditAction, useComplianceReport, useComplianceAction } from "@/lib/hooks";
+import {
+  useAudit,
+  useAuditAction,
+  useComplianceReport,
+  useComplianceAction,
+  useChecklists,
+  useCreateChecklist,
+} from "@/lib/hooks";
 import {
   Button,
   Card,
@@ -83,6 +90,7 @@ export function AuditDetailPage() {
         </div>
         <div className="space-y-6">
           <ActionsCard audit={data} />
+          <ChecklistCard audit={data} />
           <DetailsCard audit={data} />
         </div>
       </div>
@@ -122,6 +130,95 @@ function OutcomeBanner({ audit }: { audit: AuditDetail }) {
         </span>
       )}
     </div>
+  );
+}
+
+function ChecklistCard({ audit }: { audit: AuditDetail }) {
+  const { data: checklists } = useChecklists();
+  const create = useCreateChecklist();
+  const assign = useAuditAction(audit.id);
+  const toast = useToast();
+  const [picked, setPicked] = useState("");
+  const [newName, setNewName] = useState("");
+
+  // Only relevant before the audit is locked; hide once signed/closed.
+  if (audit.status === "Signed" || audit.status === "Closed") return null;
+
+  const assigned = !!audit.checklistId;
+
+  async function doAssign(checklistId: string) {
+    try {
+      await assign.mutateAsync({ path: "checklist", body: { checklistId } });
+      toast.push("Checklist assigned");
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  async function quickCreate() {
+    if (!newName.trim()) return;
+    try {
+      const res = await create.mutateAsync({
+        name: newName.trim(),
+        items: [
+          { question: "Is the Quality Management System documented and current?", section: "Quality System", isCritical: true },
+          { question: "Are batch records reviewed and approved before release?", section: "Production", isCritical: true },
+          { question: "Is equipment calibration current and documented?", section: "Utilities", isCritical: false },
+          { question: "Are personnel trained and training records maintained?", section: "Personnel", isCritical: false },
+        ],
+      });
+      setNewName("");
+      await doAssign(res.id);
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Checklist" subtitle="Required before execution" />
+      <CardBody className="space-y-3 text-sm">
+        {assigned ? (
+          <p className="text-emerald-700">A checklist is assigned to this audit.</p>
+        ) : (
+          <>
+            {checklists && checklists.length > 0 && (
+              <div className="space-y-2">
+                <Select value={picked} onChange={(e) => setPicked(e.target.value)}>
+                  <option value="">Select a checklist…</option>
+                  {checklists.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.itemCount} items)
+                    </option>
+                  ))}
+                </Select>
+                <Button disabled={!picked} onClick={() => picked && doAssign(picked)}>
+                  Assign
+                </Button>
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-3">
+              <p className="mb-2 text-xs text-gray-500">
+                {checklists && checklists.length > 0
+                  ? "Or create a new one:"
+                  : "No checklists yet — create a starter one:"}
+              </p>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Checklist name (e.g. ICH Q7 API audit)"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <Button variant="outline" disabled={!newName.trim()} onClick={quickCreate}>
+                  Create &amp; assign
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardBody>
+    </Card>
   );
 }
 
