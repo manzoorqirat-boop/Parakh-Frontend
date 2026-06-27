@@ -81,7 +81,7 @@ export function AuditsPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Audit no.</th>
@@ -121,7 +121,7 @@ export function AuditsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
