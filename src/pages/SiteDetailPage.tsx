@@ -39,7 +39,7 @@ export function SiteDetailPage() {
         <Card className="md:col-span-2">
           <CardHeader title="Site details" />
           <CardBody>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <Detail label="GMP status" value={site.gmpStatus} />
               <Detail label="Risk tier" value={site.riskTier} />
               <Detail label="Qualified" value={fmtDate(site.qualifiedDate)} />
