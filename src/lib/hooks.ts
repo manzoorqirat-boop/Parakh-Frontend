@@ -17,6 +17,7 @@ import type {
   SupplierSiteDetail,
   Material,
   SupplierMaterialRow,
+  ChecklistListItem,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -114,6 +115,27 @@ export function useAuditAction(id: string) {
       qc.invalidateQueries({ queryKey: ["audit", id] });
       qc.invalidateQueries({ queryKey: ["audits"] });
     },
+  });
+}
+
+// ----- Checklist templates -----
+export function useChecklists() {
+  return useQuery({
+    queryKey: ["checklists"],
+    queryFn: async () => (await api.get<ChecklistListItem[]>("/checklists")).data,
+  });
+}
+
+export function useCreateChecklist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      name: string;
+      standard?: string;
+      description?: string;
+      items: { question: string; section?: string; refClause?: string; isCritical: boolean }[];
+    }) => (await api.post("/checklists", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
   });
 }
 
