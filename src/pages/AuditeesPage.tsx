@@ -79,7 +79,7 @@ export function AuditeesPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Name</th>
@@ -117,7 +117,7 @@ export function AuditeesPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -177,7 +177,7 @@ function CreateAuditeeModal({
   return (
     <Modal open={open} onClose={onClose} title="New auditee">
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Name">
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
           </Field>
@@ -185,7 +185,7 @@ function CreateAuditeeModal({
             <Input value={form.code} onChange={(e) => set("code", e.target.value)} />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Type">
             <Select
               value={form.type}
@@ -215,7 +215,7 @@ function CreateAuditeeModal({
             placeholder="e.g. API, Packaging, Sterile CMO"
           />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Country">
             <Input
               value={form.country}
