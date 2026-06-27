@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { useCapas, useCreateCapa, useFindings } from "@/lib/hooks";
+import { useCapas, useCreateCapa } from "@/lib/hooks";
 import {
   Button,
   Card,
@@ -76,7 +76,7 @@ export function CapasPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">CAPA no.</th>
@@ -120,7 +120,7 @@ export function CapasPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -138,7 +138,6 @@ function CreateCapaModal({
   onClose: () => void;
 }) {
   const create = useCreateCapa();
-  const findings = useFindings();
   const toast = useToast();
   const [form, setForm] = useState({
     findingId: "",
@@ -169,16 +168,12 @@ function CreateCapaModal({
   return (
     <Modal open={open} onClose={onClose} title="New CAPA">
       <div className="space-y-4">
-        <Field label="Finding" hint="The signed finding this CAPA addresses">
-          <Select value={form.findingId} onChange={(e) => set("findingId", e.target.value)}>
-            <option value="">Select a finding…</option>
-            {findings.data?.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.findingNo} · {f.classification} · {f.description.slice(0, 40)}
-                {f.description.length > 40 ? "…" : ""}
-              </option>
-            ))}
-          </Select>
+        <Field label="Finding ID" hint="GUID of the signed finding this CAPA addresses">
+          <Input
+            value={form.findingId}
+            onChange={(e) => set("findingId", e.target.value)}
+            placeholder="00000000-0000-0000-0000-000000000000"
+          />
         </Field>
         <Field label="Action type">
           <Select
