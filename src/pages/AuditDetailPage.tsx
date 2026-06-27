@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, FileSignature } from "lucide-react";
-import { useAudit, useAuditAction } from "@/lib/hooks";
+import { useAudit, useAuditAction, useComplianceReport, useComplianceAction } from "@/lib/hooks";
 import {
   Button,
   Card,
@@ -79,6 +79,7 @@ export function AuditDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <FindingsCard audit={data} />
+          <ComplianceCard audit={data} />
         </div>
         <div className="space-y-6">
           <ActionsCard audit={data} />
@@ -121,6 +122,130 @@ function OutcomeBanner({ audit }: { audit: AuditDetail }) {
         </span>
       )}
     </div>
+  );
+}
+
+function ComplianceCard({ audit }: { audit: AuditDetail }) {
+  const { data: report, isLoading } = useComplianceReport(audit.id);
+  const { request, received, review } = useComplianceAction(audit.id);
+  const toast = useToast();
+
+  // §5.7.1: only needed once the site is Not Acceptable (critical or >6 major).
+  const needed = audit.outcome === "NotAcceptable" || report != null;
+  if (!needed) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue =
+    report != null &&
+    !report.receivedOn &&
+    report.status !== "Closed" &&
+    report.dueOn < today;
+
+  async function run(fn: () => Promise<unknown>, ok: string) {
+    try {
+      await fn();
+      toast.push(ok);
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Compliance report" subtitle="§5.7 vendor CAPA response" />
+      <CardBody className="space-y-4 text-sm">
+        {isLoading && <Spinner />}
+
+        {!isLoading && !report && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-gray-500">
+              Site is Not Acceptable — request a compliance report (30 working days).
+            </p>
+            <Button
+              onClick={() => run(() => request.mutateAsync(undefined), "Compliance report requested")}
+            >
+              Request
+            </Button>
+          </div>
+        )}
+
+        {report && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Row label="Report no" value={report.reportNo} />
+              <Row
+                label="Status"
+                value={overdue ? "Overdue" : humanize(report.status)}
+              />
+              <Row label="Requested" value={fmtDate(report.requestedOn)} />
+              <Row
+                label="Due"
+                value={
+                  <span className={overdue ? "font-semibold text-red-700" : ""}>
+                    {fmtDate(report.dueOn)} ({report.workingDaysAllowed} wd)
+                  </span>
+                }
+              />
+              {report.receivedOn && (
+                <Row label="Received" value={fmtDate(report.receivedOn)} />
+              )}
+              {report.adequacy !== "Pending" && (
+                <Row label="Adequacy" value={humanize(report.adequacy)} />
+              )}
+            </div>
+
+            {report.status !== "Closed" && (
+              <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-3">
+                {!report.receivedOn && (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      run(
+                        () => received.mutateAsync({ reportId: report.id, receivedOn: today }),
+                        "Marked received",
+                      )
+                    }
+                  >
+                    Mark received
+                  </Button>
+                )}
+                {report.receivedOn && (
+                  <>
+                    <Button
+                      onClick={() =>
+                        run(
+                          () =>
+                            review.mutateAsync({ reportId: report.id, adequacy: "Adequate" }),
+                          "Approved — vendor classified Approved",
+                        )
+                      }
+                    >
+                      Adequate → Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        run(
+                          () =>
+                            review.mutateAsync({
+                              reportId: report.id,
+                              adequacy: "Inadequate",
+                              verificationMethod: "FollowUpAudit",
+                            }),
+                          "Inadequate — follow-up audit created",
+                        )
+                      }
+                    >
+                      Inadequate → Follow-up
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </CardBody>
+    </Card>
   );
 }
 
