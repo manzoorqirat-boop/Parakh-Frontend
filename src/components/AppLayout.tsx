@@ -5,6 +5,13 @@ import {
   ClipboardCheck,
   Wrench,
   Package,
+  AlertTriangle,
+  FlaskConical,
+  FileWarning,
+  GitPullRequestArrow,
+  FileSignature,
+  Users,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
@@ -15,7 +22,14 @@ const nav = [
   { to: "/suppliers", label: "Suppliers", icon: Building2 },
   { to: "/materials", label: "Materials", icon: Package },
   { to: "/audits", label: "Audits", icon: ClipboardCheck },
+  { to: "/auditors", label: "Auditors", icon: Users },
   { to: "/capas", label: "CAPAs", icon: Wrench },
+  { to: "/scars", label: "SCARs", icon: AlertTriangle },
+  { to: "/sncrs", label: "SNCRs", icon: FileWarning },
+  { to: "/coa-inspections", label: "CoA Inspections", icon: FlaskConical },
+  { to: "/change-control", label: "Change Notifications", icon: GitPullRequestArrow },
+  { to: "/quality-agreements", label: "Quality Agreements", icon: FileSignature },
+  { to: "/scorecards", label: "Scorecards", icon: BarChart3 },
 ];
 
 export function AppLayout() {
@@ -45,7 +59,7 @@ export function AppLayout() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {nav.map((item) => (
             <NavLink
               key={item.to}
