@@ -54,7 +54,7 @@ export function AuditDetailPage() {
 
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="tabular text-xl font-bold text-[var(--pk-navy)]">
               {data.auditNo}
             </h1>
@@ -234,7 +234,7 @@ function ScheduleModal({
   return (
     <Modal open={open} onClose={onClose} title="Schedule audit">
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="From">
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </Field>
