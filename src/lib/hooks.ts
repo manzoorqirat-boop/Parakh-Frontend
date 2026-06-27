@@ -19,27 +19,7 @@ import type {
   SupplierMaterialRow,
 } from "@/types";
 
-// ---------- List-response normalizer ----------
-// Backend list endpoints are expected to return a bare JSON array, but a few
-// shapes can slip through that break `.map()` in the pages:
-//   - paginated/enveloped responses: { items: [...] }, { data: [...] }, etc.
-//   - an RFC7807 problem object returned with a 200 status
-//   - null / undefined
-// `toArray` coerces any of those into a real array so every list page is safe
-// and no per-page Array.isArray guards are needed.
-function toArray<T>(d: unknown): T[] {
-  if (Array.isArray(d)) return d as T[];
-  if (d && typeof d === "object") {
-    const o = d as Record<string, unknown>;
-    for (const k of ["items", "data", "results", "value"]) {
-      if (Array.isArray(o[k])) return o[k] as T[];
-    }
-  }
-  return [];
-}
-
 // ---------- Dashboard ----------
-// Returns a single object — NOT wrapped in toArray.
 export function useDashboard() {
   return useQuery({
     queryKey: ["dashboard"],
@@ -51,7 +31,7 @@ export function useRiskHeatmap() {
   return useQuery({
     queryKey: ["risk-heatmap"],
     queryFn: async () =>
-      toArray<RiskHeatmapRow>((await api.get("/dashboard/risk-heatmap")).data),
+      (await api.get<RiskHeatmapRow[]>("/dashboard/risk-heatmap")).data,
   });
 }
 
@@ -60,9 +40,7 @@ export function useAuditees(type?: string) {
   return useQuery({
     queryKey: ["auditees", type ?? "all"],
     queryFn: async () =>
-      toArray<Auditee>(
-        (await api.get("/auditees", { params: { type } })).data
-      ),
+      (await api.get<Auditee[]>("/auditees", { params: { type } })).data,
   });
 }
 export function useAuditee(id: string | undefined) {
@@ -97,9 +75,7 @@ export function useAudits(status?: string) {
   return useQuery({
     queryKey: ["audits", status ?? "all"],
     queryFn: async () =>
-      toArray<AuditListItem>(
-        (await api.get("/audits", { params: { status } })).data
-      ),
+      (await api.get<AuditListItem[]>("/audits", { params: { status } })).data,
   });
 }
 export function useAudit(id: string | undefined) {
@@ -143,9 +119,7 @@ export function useCapas(status?: string) {
   return useQuery({
     queryKey: ["capas", status ?? "all"],
     queryFn: async () =>
-      toArray<CapaListItem>(
-        (await api.get("/capas", { params: { status } })).data
-      ),
+      (await api.get<CapaListItem[]>("/capas", { params: { status } })).data,
   });
 }
 export function useCapa(id: string | undefined) {
@@ -185,7 +159,7 @@ export function useSupplierParents() {
   return useQuery({
     queryKey: ["supplier-parents"],
     queryFn: async () =>
-      toArray<SupplierParent>((await api.get("/supplier-parents")).data),
+      (await api.get<SupplierParent[]>("/supplier-parents")).data,
   });
 }
 export function useSupplierParent(id: string | undefined) {
@@ -221,13 +195,9 @@ export function useSupplierSites(parentId?: string) {
   return useQuery({
     queryKey: ["supplier-sites", parentId ?? "all"],
     queryFn: async () =>
-      toArray<SupplierSite>(
-        (
-          await api.get("/supplier-sites", {
-            params: { parentId },
-          })
-        ).data
-      ),
+      (await api.get<SupplierSite[]>("/supplier-sites", {
+        params: { parentId },
+      })).data,
   });
 }
 export function useSupplierSite(id: string | undefined) {
@@ -279,8 +249,7 @@ export function useTransition(objectType: string, id: string) {
 export function useMaterials() {
   return useQuery({
     queryKey: ["materials"],
-    queryFn: async () =>
-      toArray<Material>((await api.get("/materials")).data),
+    queryFn: async () => (await api.get<Material[]>("/materials")).data,
   });
 }
 export function useCreateMaterial() {
@@ -300,9 +269,8 @@ export function useSupplierMaterials(params: {
   return useQuery({
     queryKey: ["supplier-materials", params.siteId ?? "", params.materialId ?? ""],
     queryFn: async () =>
-      toArray<SupplierMaterialRow>(
-        (await api.get("/supplier-materials", { params })).data
-      ),
+      (await api.get<SupplierMaterialRow[]>("/supplier-materials", { params }))
+        .data,
   });
 }
 export function useCreateSupplierMaterial() {
@@ -329,9 +297,7 @@ export function useScars(params: { siteId?: string } = {}) {
   return useQuery({
     queryKey: ["scars", params.siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").ScarListItem>(
-        (await api.get("/scars", { params })).data
-      ),
+      (await api.get<import("@/types").ScarListItem[]>("/scars", { params })).data,
   });
 }
 export function useScar(id: string | undefined) {
@@ -373,13 +339,9 @@ export function useScorecards(siteId?: string) {
   return useQuery({
     queryKey: ["scorecards", siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").ScorecardListItem>(
-        (
-          await api.get("/scorecards", {
-            params: { siteId },
-          })
-        ).data
-      ),
+      (await api.get<import("@/types").ScorecardListItem[]>("/scorecards", {
+        params: { siteId },
+      })).data,
   });
 }
 export function useComputeScorecard() {
@@ -396,7 +358,6 @@ export function useComputeScorecard() {
 }
 
 // ---------- SQM: External collaboration pool ----------
-// Returns a single status object — NOT wrapped in toArray.
 export function useExternalPool() {
   return useQuery({
     queryKey: ["external-pool"],
@@ -411,18 +372,14 @@ export function useRiskAssessments(siteId?: string) {
   return useQuery({
     queryKey: ["risk-assessments", siteId ?? "all"],
     queryFn: async () =>
-      toArray(
-        (await api.get("/risk-assessments", { params: { siteId } })).data
-      ),
+      (await api.get("/risk-assessments", { params: { siteId } })).data,
   });
 }
 export function useQualifications(siteId?: string) {
   return useQuery({
     queryKey: ["qualifications", siteId ?? "all"],
     queryFn: async () =>
-      toArray(
-        (await api.get("/qualifications", { params: { siteId } })).data
-      ),
+      (await api.get("/qualifications", { params: { siteId } })).data,
   });
 }
 
@@ -431,13 +388,9 @@ export function useSncrs(siteId?: string) {
   return useQuery({
     queryKey: ["sncrs", siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").SncrListItem>(
-        (
-          await api.get("/sncrs", {
-            params: { siteId },
-          })
-        ).data
-      ),
+      (await api.get<import("@/types").SncrListItem[]>("/sncrs", {
+        params: { siteId },
+      })).data,
   });
 }
 export function useCreateSncr() {
@@ -454,11 +407,10 @@ export function useCoaInspections(siteId?: string) {
   return useQuery({
     queryKey: ["coa-inspections", siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").CoaInspectionListItem>(
-        (
-          await api.get("/coa-inspections", { params: { siteId } })
-        ).data
-      ),
+      (await api.get<import("@/types").CoaInspectionListItem[]>(
+        "/coa-inspections",
+        { params: { siteId } }
+      )).data,
   });
 }
 export function useCreateCoaInspection() {
@@ -483,11 +435,10 @@ export function useChangeNotifications(siteId?: string) {
   return useQuery({
     queryKey: ["change-notifications", siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").ChangeNotificationListItem>(
-        (
-          await api.get("/change-notifications", { params: { siteId } })
-        ).data
-      ),
+      (await api.get<import("@/types").ChangeNotificationListItem[]>(
+        "/change-notifications",
+        { params: { siteId } }
+      )).data,
   });
 }
 export function useCreateChangeNotification() {
@@ -514,11 +465,10 @@ export function useQualityAgreements(siteId?: string) {
   return useQuery({
     queryKey: ["quality-agreements", siteId ?? "all"],
     queryFn: async () =>
-      toArray<import("@/types").QualityAgreementListItem>(
-        (
-          await api.get("/quality-agreements", { params: { siteId } })
-        ).data
-      ),
+      (await api.get<import("@/types").QualityAgreementListItem[]>(
+        "/quality-agreements",
+        { params: { siteId } }
+      )).data,
   });
 }
 export function useCreateQualityAgreement() {
@@ -536,9 +486,9 @@ export function useAuditorProfiles() {
   return useQuery({
     queryKey: ["auditor-profiles"],
     queryFn: async () =>
-      toArray<import("@/types").AuditorProfileItem>(
-        (await api.get("/auditor-profiles")).data
-      ),
+      (await api.get<import("@/types").AuditorProfileItem[]>(
+        "/auditor-profiles"
+      )).data,
   });
 }
 export function useCreateAuditorProfile() {
@@ -571,8 +521,24 @@ export function useSiteOptions() {
   return useQuery({
     queryKey: ["supplier-sites", "all"],
     queryFn: async () =>
-      toArray<import("@/types").SupplierSite>(
-        (await api.get("/supplier-sites")).data
-      ),
+      (await api.get<import("@/types").SupplierSite[]>("/supplier-sites")).data,
+  });
+}
+
+// ---------- Users (people-picker dropdowns) ----------
+export function useUsers() {
+  return useQuery({
+    queryKey: ["users"],
+    queryFn: async () =>
+      (await api.get<import("@/types").UserOption[]>("/users")).data,
+  });
+}
+
+// ---------- Findings (CAPA finding-picker dropdown) ----------
+export function useFindings() {
+  return useQuery({
+    queryKey: ["findings"],
+    queryFn: async () =>
+      (await api.get<import("@/types").FindingOption[]>("/findings")).data,
   });
 }
