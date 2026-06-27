@@ -58,7 +58,7 @@ export function QualityAgreementsPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px] whitespace-nowrap text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Record</th>
@@ -83,7 +83,7 @@ export function QualityAgreementsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
@@ -158,7 +158,7 @@ function CreateAgreementModal({ open, onClose }: { open: boolean; onClose: () =>
             ))}
           </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Document ref" hint="Optional">
             <Input value={form.documentRef} onChange={(e) => set("documentRef", e.target.value)} />
           </Field>
@@ -175,7 +175,7 @@ function CreateAgreementModal({ open, onClose }: { open: boolean; onClose: () =>
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Effective date">
             <Input
               type="date"
