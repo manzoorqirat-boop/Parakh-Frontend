@@ -314,7 +314,7 @@ function AddEffectivenessModal({
   return (
     <Modal open={open} onClose={onClose} title="Record effectiveness check">
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Verification date">
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
