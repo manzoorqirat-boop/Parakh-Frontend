@@ -38,6 +38,15 @@ export type ComplianceResult =
   | "NonCompliant"
   | "PartiallyCompliant"
   | "NotApplicable";
+export interface ChecklistListItem {
+  id: string;
+  name: string;
+  standard?: string | null;
+  version: number;
+  description?: string | null;
+  itemCount: number;
+}
+
 export type EffectivenessResult = "Effective" | "NotEffective" | "Pending";
 
 // ----- P1 additions -----
@@ -159,6 +168,7 @@ export interface AuditDetail {
   outcomeEvaluatedAt?: string | null;
   parentAuditId?: string | null;
   supplierSiteId?: string | null;
+  checklistId?: string | null;
   scope?: string | null;
   objective?: string | null;
   scheduledFrom?: string | null;
