@@ -48,7 +48,7 @@ export function CapaDetailPage() {
       </Link>
 
       <div className="mb-5 flex items-start justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <h1 className="tabular text-xl font-bold text-[var(--pk-navy)]">
             {data.capaNo}
           </h1>
@@ -314,7 +314,7 @@ function AddEffectivenessModal({
   return (
     <Modal open={open} onClose={onClose} title="Record effectiveness check">
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Verification date">
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
