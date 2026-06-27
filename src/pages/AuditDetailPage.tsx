@@ -60,10 +60,14 @@ export function AuditDetailPage() {
             </h1>
             <AuditStatusBadge status={data.status} />
             <Badge tone="muted">{humanize(data.type)}</Badge>
+            <Badge tone="muted">{humanize(data.category)}</Badge>
+            <Badge tone="muted">Class {data.class}</Badge>
           </div>
           <p className="mt-1 text-sm text-gray-500">{data.auditee.name}</p>
         </div>
       </div>
+
+      <OutcomeBanner audit={data} />
 
       {/* Lifecycle rail — the signature element */}
       <Card className="mb-6">
@@ -85,11 +89,51 @@ export function AuditDetailPage() {
   );
 }
 
+function OutcomeBanner({ audit }: { audit: AuditDetail }) {
+  if (audit.outcome === "Pending") return null;
+
+  const acceptable = audit.outcome === "Acceptable" || audit.outcome === "Approved";
+  const label =
+    audit.outcome === "NotAcceptable"
+      ? "Not Acceptable"
+      : audit.outcome === "NotApproved"
+        ? "Not Approved"
+        : audit.outcome;
+
+  const critical = audit.findings.filter((f) => f.classification === "Critical").length;
+  const major = audit.findings.filter((f) => f.classification === "Major").length;
+
+  return (
+    <div
+      className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+        acceptable
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-red-200 bg-red-50 text-red-800"
+      }`}
+    >
+      <span className="font-semibold">Site classification: {label}</span>
+      {!acceptable && (
+        <span className="ml-2 text-red-700">
+          {critical > 0
+            ? `${critical} critical observation(s) recorded`
+            : `${major} major observations (more than 6)`}{" "}
+          — compliance report required; intimation note raised (§5.6.3).
+        </span>
+      )}
+    </div>
+  );
+}
+
 function DetailsCard({ audit }: { audit: AuditDetail }) {
   return (
     <Card>
       <CardHeader title="Details" />
       <CardBody className="space-y-3 text-sm">
+        <Row label="Category" value={humanize(audit.category)} />
+        <Row
+          label="Class"
+          value={`${audit.class}${audit.classSource === "Manual" ? " (manual)" : ""}`}
+        />
         <Row label="Scope" value={audit.scope ?? "—"} />
         <Row label="Objective" value={audit.objective ?? "—"} />
         <Row
