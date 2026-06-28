@@ -569,6 +569,26 @@ export function useCreateAuditorProfile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
   });
 }
+export function useUpdateAuditorQualification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      profileId: string;
+      designation: string;
+      experienceStartDate?: string | null;
+      isCertified: boolean;
+      certifiedOn?: string | null;
+    }) =>
+      (await api.put(`/auditor-profiles/${v.profileId}/qualification`, {
+        designation: v.designation,
+        experienceStartDate: v.experienceStartDate || null,
+        isCertified: v.isCertified,
+        certifiedOn: v.certifiedOn || null,
+      })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
+  });
+}
+
 export function useUpsertAuditorRole(profileId: string) {
   const qc = useQueryClient();
   return useMutation({
