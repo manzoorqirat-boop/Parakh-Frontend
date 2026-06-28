@@ -22,7 +22,7 @@ import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
 import { fmtDate } from "@/lib/utils";
-import type { AuditeeType, Criticality } from "@/types";
+import type { AuditeeType, Criticality, MaterialCategory } from "@/types";
 
 const typeLabels: Record<AuditeeType, string> = {
   Supplier: "Supplier",
@@ -141,6 +141,7 @@ function CreateAuditeeModal({
     code: "",
     type: "Supplier" as AuditeeType,
     criticality: "Major" as Criticality,
+    materialCategory: "" as MaterialCategory | "",
     materialOrServiceCategory: "",
     country: "",
     contactEmail: "",
@@ -155,6 +156,7 @@ function CreateAuditeeModal({
     try {
       await create.mutateAsync({
         ...form,
+        materialCategory: form.materialCategory || null,
         qualificationExpiry: form.qualificationExpiry || null,
       });
       toast.push("Auditee created");
@@ -164,6 +166,7 @@ function CreateAuditeeModal({
         code: "",
         type: "Supplier",
         criticality: "Major",
+        materialCategory: "",
         materialOrServiceCategory: "",
         country: "",
         contactEmail: "",
@@ -208,12 +211,21 @@ function CreateAuditeeModal({
             </Select>
           </Field>
         </div>
-        <Field label="Material / service category">
-          <Input
-            value={form.materialOrServiceCategory}
-            onChange={(e) => set("materialOrServiceCategory", e.target.value)}
-            placeholder="e.g. API, Packaging, Sterile CMO"
-          />
+        <Field label="Material / service category" hint="Drives audit class, number & frequency">
+          <Select
+            value={form.materialCategory}
+            onChange={(e) => set("materialCategory", e.target.value as MaterialCategory | "")}
+          >
+            <option value="">Select a category…</option>
+            <option value="Api">API</option>
+            <option value="Ksm">KSM (key starting material)</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Excipient">Excipient</option>
+            <option value="PrimaryPackaging">Primary packaging</option>
+            <option value="PrintedPackaging">Printed packaging</option>
+            <option value="DrugProduct">Drug product</option>
+            <option value="Other">Other</option>
+          </Select>
         </Field>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Country">
