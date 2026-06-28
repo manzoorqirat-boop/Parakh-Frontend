@@ -11,7 +11,7 @@ export type MaterialCategory =
   | "PrintedPackaging"
   | "DrugProduct"
   | "Other";
-export type QualStatus = "Approved" | "Conditional" | "Disqualified" | "Pending";
+export type QualStatus = "Approved" | "Conditional" | "Disqualified" | "Pending" | "Blocked";
 export type AuditType = "Onsite" | "Remote" | "Postal" | "ForCause" | "Internal";
 export type AuditCategory =
   | "FirstTime"
@@ -135,12 +135,15 @@ export interface Auditee {
   criticality: Criticality;
   qualStatus: QualStatus;
   materialOrServiceCategory?: string | null;
+  materialCategory?: MaterialCategory | null;
   country?: string | null;
   contactName?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
   qualifiedOn?: string | null;
   qualificationExpiry?: string | null;
+  lastAuditDate?: string | null;
+  nextAuditDue?: string | null;
 }
 
 // ----- Audit -----
@@ -150,6 +153,7 @@ export interface AuditListItem {
   status: AuditStatus;
   type: AuditType;
   category?: AuditCategory;
+  class?: AuditClass;
   outcome?: AuditOutcome;
   auditee: string;
   scheduledFrom?: string | null;
@@ -237,6 +241,8 @@ export interface DashboardSummary {
   openCapas: number;
   overdueCapas: number;
   expiringQuals: number;
+  auditsDueSoon: number;
+  auditsOverdue: number;
   auditsByStatus: { status: AuditStatus; count: number }[];
 }
 
