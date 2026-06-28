@@ -81,13 +81,15 @@ export function AuditsPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
-            <div className="overflow-x-auto"><table className="w-full min-w-[640px] whitespace-nowrap text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[820px] whitespace-nowrap text-sm">
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Audit no.</th>
                   <th className="px-5 py-3 font-medium">Auditee</th>
+                  <th className="px-5 py-3 font-medium">Category</th>
                   <th className="px-5 py-3 font-medium">Type</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Outcome</th>
                   <th className="px-5 py-3 font-medium">Scheduled</th>
                 </tr>
               </thead>
@@ -104,10 +106,28 @@ export function AuditsPage() {
                     </td>
                     <td className="px-5 py-3 text-gray-700">{a.auditee}</td>
                     <td className="px-5 py-3">
+                      {a.category ? <Badge tone="muted">{humanize(a.category)}</Badge> : "—"}
+                    </td>
+                    <td className="px-5 py-3">
                       <Badge tone="muted">{humanize(a.type)}</Badge>
                     </td>
                     <td className="px-5 py-3">
                       <AuditStatusBadge status={a.status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      {a.outcome && a.outcome !== "Pending" ? (
+                        <Badge
+                          tone={
+                            a.outcome === "Acceptable" || a.outcome === "Approved"
+                              ? "ok"
+                              : "danger"
+                          }
+                        >
+                          {humanize(a.outcome)}
+                        </Badge>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-5 py-3 text-gray-500">
                       {a.scheduledFrom ? (
