@@ -503,6 +503,10 @@ export interface AuditorProfileItem {
   fullName: string;
   userId?: string | null;
   isActive: boolean;
+  designation?: DesignationLevel;
+  experienceStartDate?: string | null;
+  isCertified?: boolean;
+  refresherDueOn?: string | null;
   roles: AuditorRoleItem[];
 }
 
