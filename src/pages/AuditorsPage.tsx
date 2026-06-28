@@ -3,15 +3,17 @@ import { Plus, BadgeCheck } from "lucide-react";
 import {
   useAuditorProfiles,
   useCreateAuditorProfile,
+  useUpdateAuditorQualification,
   useUpsertAuditorRole,
   useQualifyAuditorRole,
+  useUsers,
 } from "@/lib/hooks";
-import { Button, Card, CardBody, Field, Input } from "@/components/ui/primitives";
+import { Button, Card, CardBody, Field, Input, Select } from "@/components/ui/primitives";
 import { Spinner, ErrorNote, EmptyState, Badge } from "@/components/ui/status";
 import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
-import type { AuditorProfileItem } from "@/types";
+import type { AuditorProfileItem, DesignationLevel } from "@/types";
 
 export function AuditorsPage() {
   const { data, isLoading, error } = useAuditorProfiles();
@@ -156,32 +158,47 @@ function AuditorCard({ profile }: { profile: AuditorProfileItem }) {
 
 function CreateAuditorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const create = useCreateAuditorProfile();
+  const qualify = useUpdateAuditorQualification();
+  const users = useUsers();
   const toast = useToast();
-  const empty = { fullName: "", certifications: "", languages: "", gxpAreas: "" };
+  const empty = {
+    fullName: "",
+    userId: "",
+    certifications: "",
+    languages: "",
+    gxpAreas: "",
+    designation: "Executive" as DesignationLevel,
+    experienceStartDate: "",
+    isCertified: false,
+    certifiedOn: "",
+  };
   const [form, setForm] = useState(empty);
 
-  function set<K extends keyof typeof form>(k: K, v: string) {
+  function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  // certifications / languages / gxpAreas are jsonb columns in the DB, so the
-  // value sent must be valid JSON. Convert comma-separated free text into a JSON
-  // array string (e.g. "ISO, GMP" -> ["ISO","GMP"]); empty -> null.
   function toJsonArray(text: string): string | null {
-    const parts = text
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
+    const parts = text.split(",").map((p) => p.trim()).filter(Boolean);
     return parts.length ? JSON.stringify(parts) : null;
   }
 
   async function submit() {
     try {
-      await create.mutateAsync({
+      const res = await create.mutateAsync({
         fullName: form.fullName,
+        userId: form.userId || null,
         certifications: toJsonArray(form.certifications),
         languages: toJsonArray(form.languages),
         gxpAreas: toJsonArray(form.gxpAreas),
+      });
+      // Persist designation/experience/certification so the auditor can lead audits.
+      await qualify.mutateAsync({
+        profileId: res.id,
+        designation: form.designation,
+        experienceStartDate: form.experienceStartDate || null,
+        isCertified: form.isCertified,
+        certifiedOn: form.certifiedOn || null,
       });
       toast.push("Auditor created");
       onClose();
@@ -197,20 +214,68 @@ function CreateAuditorModal({ open, onClose }: { open: boolean; onClose: () => v
         <Field label="Full name">
           <Input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} />
         </Field>
-        <Field label="Certifications" hint="Free text, e.g. ISO 9001 Lead Auditor">
-          <Input
-            value={form.certifications}
-            onChange={(e) => set("certifications", e.target.value)}
-          />
+
+        <Field label="Linked user" hint="Required to be assignable as lead/team on audits">
+          <Select value={form.userId} onChange={(e) => set("userId", e.target.value)}>
+            <option value="">— not linked —</option>
+            {users.data?.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.fullName} ({u.email})
+              </option>
+            ))}
+          </Select>
         </Field>
+
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Languages">
-            <Input value={form.languages} onChange={(e) => set("languages", e.target.value)} />
+          <Field label="Designation">
+            <Select
+              value={form.designation}
+              onChange={(e) => set("designation", e.target.value as DesignationLevel)}
+            >
+              <option value="Executive">Executive</option>
+              <option value="SeniorExecutive">Senior Executive</option>
+              <option value="AssistantManager">Assistant Manager</option>
+              <option value="Manager">Manager</option>
+              <option value="SeniorManager">Senior Manager</option>
+              <option value="GeneralManager">General Manager</option>
+              <option value="Director">Director</option>
+            </Select>
           </Field>
-          <Field label="GxP areas" hint="e.g. API, Sterile">
-            <Input value={form.gxpAreas} onChange={(e) => set("gxpAreas", e.target.value)} />
+          <Field label="Experience start" hint="Drives years of experience">
+            <Input
+              type="date"
+              value={form.experienceStartDate}
+              onChange={(e) => set("experienceStartDate", e.target.value)}
+            />
           </Field>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Certified auditor?">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isCertified}
+                onChange={(e) => set("isCertified", e.target.checked)}
+              />
+              Certified (§5.3.3)
+            </label>
+          </Field>
+          {form.isCertified && (
+            <Field label="Certified on" hint="Refresher auto-set +2 yr">
+              <Input
+                type="date"
+                value={form.certifiedOn}
+                onChange={(e) => set("certifiedOn", e.target.value)}
+              />
+            </Field>
+          )}
+        </div>
+
+        <Field label="GxP areas" hint="e.g. API, Sterile">
+          <Input value={form.gxpAreas} onChange={(e) => set("gxpAreas", e.target.value)} />
+        </Field>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
