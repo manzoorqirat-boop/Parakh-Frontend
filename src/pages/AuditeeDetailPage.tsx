@@ -142,6 +142,7 @@ function QualModal({
             <option value="Conditional">Conditional</option>
             <option value="Disqualified">Disqualified</option>
             <option value="Pending">Pending</option>
+            <option value="Blocked">Blocked</option>
           </Select>
         </Field>
         <Field label="Expiry date">
