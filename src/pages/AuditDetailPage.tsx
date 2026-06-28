@@ -8,6 +8,7 @@ import {
   useComplianceAction,
   useChecklists,
   useCreateChecklist,
+  useAuditorProfiles,
 } from "@/lib/hooks";
 import {
   Button,
@@ -31,7 +32,7 @@ import {
 import { Modal, useToast } from "@/components/ui/overlay";
 import { apiError } from "@/lib/api";
 import { fmtDate, humanize } from "@/lib/utils";
-import type { AuditDetail, FindingClass } from "@/types";
+import type { AuditDetail, FindingClass, AuditClass, AuditorProfileItem } from "@/types";
 
 const AUDIT_LIFECYCLE = [
   "Planned",
@@ -464,6 +465,7 @@ function ActionsCard({ audit }: { audit: AuditDetail }) {
         open={modal === "schedule"}
         onClose={() => setModal(null)}
         auditId={audit.id}
+        auditClass={audit.class}
       />
     </Card>
   );
@@ -473,22 +475,45 @@ function ScheduleModal({
   open,
   onClose,
   auditId,
+  auditClass,
 }: {
   open: boolean;
   onClose: () => void;
   auditId: string;
+  auditClass: AuditClass;
 }) {
   const action = useAuditAction(auditId);
+  const { data: auditors } = useAuditorProfiles();
   const toast = useToast();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [leadAuditorId, setLead] = useState("");
+  const [team, setTeam] = useState<string[]>([]);
+
+  // Only user-linked profiles can be assigned (eligibility matches by user id).
+  const linkable = (auditors ?? []).filter((a) => a.userId);
+
+  function leadHint(a: AuditorProfileItem): string {
+    const yrs = a.experienceStartDate
+      ? Math.max(0, new Date().getFullYear() - new Date(a.experienceStartDate).getFullYear())
+      : 0;
+    const mgrPlus = a.designation
+      ? ["Manager", "SeniorManager", "GeneralManager", "Director"].includes(a.designation)
+      : false;
+    const ok =
+      auditClass === "A" ? mgrPlus || yrs >= 5 : auditClass === "B" ? mgrPlus || yrs >= 3 : mgrPlus || yrs >= 2;
+    return ok ? "" : ` — not eligible for Class ${auditClass}`;
+  }
+
+  function toggleTeam(userId: string) {
+    setTeam((t) => (t.includes(userId) ? t.filter((x) => x !== userId) : [...t, userId]));
+  }
 
   async function submit() {
     try {
       await action.mutateAsync({
         path: "schedule",
-        body: { from, to, leadAuditorId, teamUserIds: [] },
+        body: { from, to, leadAuditorId, teamUserIds: team.filter((u) => u !== leadAuditorId) },
       });
       toast.push("Audit scheduled");
       onClose();
@@ -508,18 +533,53 @@ function ScheduleModal({
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </Field>
         </div>
-        <Field label="Lead auditor ID" hint="User GUID of the lead auditor">
-          <Input
-            value={leadAuditorId}
-            onChange={(e) => setLead(e.target.value)}
-            placeholder="00000000-0000-0000-0000-000000000000"
-          />
+
+        <Field label="Lead auditor" hint={`Class ${auditClass} eligibility applies`}>
+          <Select value={leadAuditorId} onChange={(e) => setLead(e.target.value)}>
+            <option value="">Select a lead…</option>
+            {linkable.map((a) => (
+              <option key={a.id} value={a.userId!}>
+                {a.fullName}
+                {a.designation ? ` · ${a.designation}` : ""}
+                {leadHint(a)}
+              </option>
+            ))}
+          </Select>
         </Field>
+
+        {linkable.length === 0 && (
+          <p className="text-xs text-amber-700">
+            No user-linked auditors yet. Create one under Auditors (link a user + set
+            designation/experience) before scheduling.
+          </p>
+        )}
+
+        <Field label="Team members" hint="At least one certified or Manager+ (§5.3.4)">
+          <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
+            {linkable.map((a) => (
+              <label key={a.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={team.includes(a.userId!) || a.userId === leadAuditorId}
+                  disabled={a.userId === leadAuditorId}
+                  onChange={() => toggleTeam(a.userId!)}
+                />
+                {a.fullName}
+                {a.isCertified ? " · certified" : ""}
+              </label>
+            ))}
+          </div>
+        </Field>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={action.isPending} disabled={!from || !to}>
+          <Button
+            onClick={submit}
+            loading={action.isPending}
+            disabled={!from || !to || !leadAuditorId}
+          >
             Schedule
           </Button>
         </div>
