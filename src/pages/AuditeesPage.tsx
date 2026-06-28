@@ -88,6 +88,7 @@ export function AuditeesPage() {
                   <th className="px-5 py-3 font-medium">Criticality</th>
                   <th className="px-5 py-3 font-medium">Qualification</th>
                   <th className="px-5 py-3 font-medium">Expiry</th>
+                  <th className="px-5 py-3 font-medium">Next audit due</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--pk-line)]">
@@ -113,6 +114,21 @@ export function AuditeesPage() {
                     </td>
                     <td className="px-5 py-3 text-gray-500">
                       {fmtDate(a.qualificationExpiry)}
+                    </td>
+                    <td className="px-5 py-3">
+                      {a.nextAuditDue ? (
+                        <span
+                          className={
+                            new Date(a.nextAuditDue) < new Date()
+                              ? "font-medium text-red-600"
+                              : "text-gray-600"
+                          }
+                        >
+                          {fmtDate(a.nextAuditDue)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
