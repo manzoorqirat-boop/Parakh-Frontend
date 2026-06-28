@@ -90,6 +90,7 @@ const qualTone: Record<QualStatus, Parameters<typeof Badge>[0]["tone"]> = {
   Conditional: "warn",
   Disqualified: "danger",
   Pending: "muted",
+  Blocked: "danger",
 };
 export function QualBadge({ value }: { value: QualStatus }) {
   return <Badge tone={qualTone[value]}>{humanize(value)}</Badge>;
