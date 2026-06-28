@@ -2,6 +2,15 @@
 
 export type AuditeeType = "Supplier" | "Cmo" | "Cro" | "InternalDept";
 export type Criticality = "Critical" | "Major" | "Minor";
+export type MaterialCategory =
+  | "Api"
+  | "Ksm"
+  | "Intermediate"
+  | "Excipient"
+  | "PrimaryPackaging"
+  | "PrintedPackaging"
+  | "DrugProduct"
+  | "Other";
 export type QualStatus = "Approved" | "Conditional" | "Disqualified" | "Pending";
 export type AuditType = "Onsite" | "Remote" | "Postal" | "ForCause" | "Internal";
 export type AuditCategory =
