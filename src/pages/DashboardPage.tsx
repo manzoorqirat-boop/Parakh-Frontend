@@ -73,6 +73,20 @@ export function DashboardPage() {
       tone: data.expiringQuals > 0 ? "warn" : "ok",
       to: "/auditees",
     },
+    {
+      label: "Audits due (3 mo)",
+      value: data.auditsDueSoon,
+      icon: CalendarClock,
+      tone: data.auditsDueSoon > 0 ? "warn" : "ok",
+      to: "/auditees",
+    },
+    {
+      label: "Audits overdue",
+      value: data.auditsOverdue,
+      icon: AlertTriangle,
+      tone: data.auditsOverdue > 0 ? "danger" : "ok",
+      to: "/auditees",
+    },
   ] as const;
 
   const toneClasses: Record<string, string> = {
@@ -98,7 +112,7 @@ export function DashboardPage() {
       />
 
       {/* Needs-attention hero band */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((t) => (
           <Link key={t.label} to={t.to}>
             <Card className="transition-shadow hover:shadow-md">
