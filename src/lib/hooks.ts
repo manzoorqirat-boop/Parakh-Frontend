@@ -22,6 +22,7 @@ import type {
   ChecklistAssignmentRow,
   StageCodesConfig,
   AuditChecklistView,
+  AuditNumberLogRow,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -156,6 +157,13 @@ export function useSetStageCode() {
     mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
       (await api.put("/numbering/stage-codes", v)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
+  });
+}
+
+export function useAuditNumberLog() {
+  return useQuery({
+    queryKey: ["audit-number-log"],
+    queryFn: async () => (await api.get<AuditNumberLogRow[]>("/audits/number-log")).data,
   });
 }
 
