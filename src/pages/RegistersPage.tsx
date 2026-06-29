@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
-import { useAuditorProfiles } from "@/lib/hooks";
+import { useAuditorProfiles, useAuditNumberLog } from "@/lib/hooks";
 import { Button, Card, CardBody, CardHeader } from "@/components/ui/primitives";
 import { Spinner, ErrorNote, EmptyState } from "@/components/ui/status";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
-import type { AuditorProfileItem } from "@/types";
+import type { AuditorProfileItem, AuditNumberLogRow } from "@/types";
 
 type RegisterTab = "auditors" | "numberLog" | "programme";
 
@@ -21,6 +21,12 @@ function downloadCsv(filename: string, header: string[], rows: (string | number 
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function fmtDate(d?: string | null): string {
+  if (!d) return "";
+  const dt = new Date(d);
+  return isNaN(dt.getTime()) ? "" : dt.toISOString().slice(0, 10);
 }
 
 function yearsSince(date?: string | null): number {
@@ -76,11 +82,7 @@ export function RegistersPage() {
       </div>
 
       {tab === "auditors" && <AuditorRegister />}
-      {tab === "numberLog" && (
-        <Card>
-          <CardBody className="p-6 text-sm text-gray-500">Audit number log — building next.</CardBody>
-        </Card>
-      )}
+      {tab === "numberLog" && <NumberLogRegister />}
       {tab === "programme" && (
         <Card>
           <CardBody className="p-6 text-sm text-gray-500">
@@ -148,6 +150,91 @@ function AuditorRegister() {
                   <td className="px-5 py-3 text-gray-600">{yearsSince(a.experienceStartDate)}</td>
                   <td className="px-5 py-3 text-gray-600">{functions(a.gxpAreas) || "—"}</td>
                   <td className="px-5 py-3 text-gray-400"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function NumberLogRegister() {
+  const { data, isLoading, error } = useAuditNumberLog();
+
+  function exportCsv(rows: AuditNumberLogRow[]) {
+    downloadCsv(
+      "audit-number-log.csv",
+      [
+        "Audit report Number",
+        "Scheduled date of audit",
+        "Name of Auditor(s)",
+        "Name of company",
+        "Company address",
+        "Name of the material",
+        "Assigned by Compliance Acceptance date",
+        "Next due date",
+        "Remark",
+      ],
+      rows.map((r) => [
+        r.auditNo,
+        fmtDate(r.scheduledDate),
+        r.auditors ?? "",
+        r.companyName ?? "",
+        r.companyAddress ?? "",
+        r.materialName ?? "",
+        fmtDate(r.complianceAcceptanceDate),
+        fmtDate(r.nextDueDate),
+        "",
+      ])
+    );
+  }
+
+  if (isLoading) return <Spinner />;
+  if (error) return <ErrorNote message={apiError(error)} />;
+  if (!data || data.length === 0)
+    return <EmptyState title="No audits" message="Audits appear here with their numbers once created." />;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Audit report numbering log"
+        subtitle={`${data.length} audit(s)`}
+        action={
+          <Button variant="outline" onClick={() => exportCsv(data)}>
+            <Download size={16} /> Export CSV
+          </Button>
+        }
+      />
+      <CardBody className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1000px] text-sm">
+            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
+              <tr>
+                <th className="px-4 py-3 font-medium">Audit no.</th>
+                <th className="px-4 py-3 font-medium">Scheduled</th>
+                <th className="px-4 py-3 font-medium">Auditor(s)</th>
+                <th className="px-4 py-3 font-medium">Company</th>
+                <th className="px-4 py-3 font-medium">Address</th>
+                <th className="px-4 py-3 font-medium">Material</th>
+                <th className="px-4 py-3 font-medium">Compliance acceptance</th>
+                <th className="px-4 py-3 font-medium">Next due</th>
+                <th className="px-4 py-3 font-medium">Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((r) => (
+                <tr key={r.auditNo} className="border-t border-gray-100">
+                  <td className="px-4 py-3 font-medium text-[var(--pk-navy)]">{r.auditNo}</td>
+                  <td className="px-4 py-3 text-gray-600">{fmtDate(r.scheduledDate) || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.auditors || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.companyName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{r.companyAddress || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.materialName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{fmtDate(r.complianceAcceptanceDate) || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{fmtDate(r.nextDueDate) || "—"}</td>
+                  <td className="px-4 py-3 text-gray-400"></td>
                 </tr>
               ))}
             </tbody>
