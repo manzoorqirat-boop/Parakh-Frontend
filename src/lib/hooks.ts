@@ -569,6 +569,19 @@ export function useCreateAuditorProfile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
   });
 }
+export function useUpdateAuditor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: string; userId?: string | null; fullName?: string; isActive?: boolean }) =>
+      (await api.put(`/auditor-profiles/${v.id}`, {
+        userId: v.userId || null,
+        fullName: v.fullName,
+        isActive: v.isActive,
+      })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["auditor-profiles"] }),
+  });
+}
+
 export function useUpdateAuditorQualification() {
   const qc = useQueryClient();
   return useMutation({
