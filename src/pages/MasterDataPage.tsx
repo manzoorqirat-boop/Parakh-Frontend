@@ -57,8 +57,10 @@ import {
   useUpdateChecklist,
   useChecklistAssignments,
   useSetChecklistAssignment,
+  useStageCodes,
+  useSetStageCode,
 } from "@/lib/hooks";
-import type { ChecklistItemRow, AuditCategory } from "@/types";
+import type { ChecklistItemRow, AuditCategory, MaterialCategory } from "@/types";
 
 type Mode = "create" | "excel" | "erp";
 
@@ -66,7 +68,7 @@ export function MasterDataPage() {
   const { data: schemas, isLoading, error } = useMasterSchemas();
   const [activeType, setActiveType] = useState<MasterEntityType | null>(null);
   const [mode, setMode] = useState<Mode>("create");
-  const [showChecklists, setShowChecklists] = useState(false);
+  const [customTab, setCustomTab] = useState<"checklists" | "numbering" | null>(null);
 
   const schema = useMemo(
     () => schemas?.find((s) => s.entityType === (activeType ?? schemas[0]?.entityType)),
@@ -95,13 +97,13 @@ export function MasterDataPage() {
       {/* Entity switcher */}
       <div className="mb-6 flex flex-wrap gap-2">
         {schemas.map((s) => {
-          const active = !showChecklists && s.entityType === current.entityType;
+          const active = !customTab && s.entityType === current.entityType;
           return (
             <button
               key={s.entityType}
               onClick={() => {
                 setActiveType(s.entityType);
-                setShowChecklists(false);
+                setCustomTab(null);
               }}
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
@@ -114,21 +116,29 @@ export function MasterDataPage() {
             </button>
           );
         })}
-        <button
-          onClick={() => setShowChecklists(true)}
-          className={cn(
-            "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-            showChecklists
-              ? "border-[var(--pk-navy)] bg-[var(--pk-navy)] text-white"
-              : "border-[var(--pk-line)] bg-white text-gray-600 hover:bg-gray-50"
-          )}
-        >
-          Checklists
-        </button>
+        {([
+          { id: "checklists", label: "Checklists" },
+          { id: "numbering", label: "Numbering" },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setCustomTab(t.id)}
+            className={cn(
+              "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+              customTab === t.id
+                ? "border-[var(--pk-navy)] bg-[var(--pk-navy)] text-white"
+                : "border-[var(--pk-line)] bg-white text-gray-600 hover:bg-gray-50"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {showChecklists ? (
+      {customTab === "checklists" ? (
         <ChecklistAdminPanel />
+      ) : customTab === "numbering" ? (
+        <NumberingAdminPanel />
       ) : (
         <>
           {/* Mode tabs */}
@@ -1084,5 +1094,118 @@ function ChecklistEditor({ editId, onClose }: { editId: string | "new"; onClose:
         </div>
       </CardBody>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+//  Numbering — configurable material-category -> stage code map
+// ---------------------------------------------------------------------------
+
+const MATERIAL_CATEGORIES: { value: MaterialCategory; label: string; fallback: string }[] = [
+  { value: "Api", label: "API", fallback: "API" },
+  { value: "Ksm", label: "KSM", fallback: "KSM" },
+  { value: "Intermediate", label: "Intermediate", fallback: "INT" },
+  { value: "Excipient", label: "Excipient", fallback: "EX" },
+  { value: "PrimaryPackaging", label: "Primary packaging", fallback: "PPM" },
+  { value: "PrintedPackaging", label: "Printed packaging", fallback: "PPM" },
+  { value: "DrugProduct", label: "Drug product", fallback: "DP" },
+  { value: "Other", label: "Other", fallback: "RM" },
+];
+
+function NumberingAdminPanel() {
+  const { data } = useStageCodes();
+  const setCode = useSetStageCode();
+  const toast = useToast();
+  // Local edits keyed by material category.
+  const [draft, setDraft] = useState<Record<string, string>>({});
+
+  function configured(cat: MaterialCategory): string {
+    return data?.rules.find((r) => r.materialCategory === cat)?.stageCode ?? "";
+  }
+  function value(cat: MaterialCategory): string {
+    return draft[cat] ?? configured(cat);
+  }
+
+  async function save(cat: MaterialCategory) {
+    try {
+      await setCode.mutateAsync({ materialCategory: cat, stageCode: value(cat) });
+      toast.push("Stage code saved");
+      setDraft((d) => {
+        const next = { ...d };
+        delete next[cat];
+        return next;
+      });
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="lg:col-span-2">
+        <Card>
+          <CardHeader
+            title="Audit number — stage codes"
+            subtitle="The STAGE token per material category. Blank uses the built-in default."
+          />
+          <CardBody className="p-0">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Material category</th>
+                  <th className="px-5 py-3 font-medium">Stage code</th>
+                  <th className="px-5 py-3 font-medium">Default</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {MATERIAL_CATEGORIES.map((m) => {
+                  const dirty = draft[m.value] !== undefined && draft[m.value] !== configured(m.value);
+                  return (
+                    <tr key={m.value} className="border-t border-gray-100">
+                      <td className="px-5 py-3 font-medium text-[var(--pk-navy)]">{m.label}</td>
+                      <td className="px-5 py-3">
+                        <Input
+                          value={value(m.value)}
+                          placeholder={m.fallback}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, [m.value]: e.target.value.toUpperCase() }))
+                          }
+                        />
+                      </td>
+                      <td className="px-5 py-3 text-gray-400">{m.fallback}</td>
+                      <td className="px-5 py-3 text-right">
+                        <Button size="sm" variant="outline" disabled={!dirty} onClick={() => save(m.value)}>
+                          Save
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardBody>
+        </Card>
+      </div>
+      <div>
+        <Card>
+          <CardHeader title="Number format" />
+          <CardBody className="space-y-3 text-sm">
+            <div>
+              <div className="text-xs text-gray-400">Format</div>
+              <code className="text-[var(--pk-navy)]">{data?.format ?? "{prefix}/{VAUDIT|VDAUDIT}/{stage}/{yy}/{seq}"}</code>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400">Prefix</div>
+              <div className="font-medium text-[var(--pk-navy)]">{data?.prefix ?? "CQC"}</div>
+            </div>
+            <p className="text-xs text-gray-500">
+              VAUDIT = on-site, VDAUDIT = desk audit. Sequence is allocated per type.
+              Example: {(data?.prefix ?? "CQC")}/VAUDIT/API/26/001
+            </p>
+          </CardBody>
+        </Card>
+      </div>
+    </div>
   );
 }
