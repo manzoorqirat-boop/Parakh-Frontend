@@ -18,6 +18,8 @@ import type {
   Material,
   SupplierMaterialRow,
   ChecklistListItem,
+  ChecklistDetail,
+  ChecklistAssignmentRow,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -136,6 +138,47 @@ export function useCreateChecklist() {
       items: { question: string; section?: string; refClause?: string; isCritical: boolean }[];
     }) => (await api.post("/checklists", body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
+}
+
+export function useChecklist(id?: string) {
+  return useQuery({
+    queryKey: ["checklist", id],
+    enabled: !!id,
+    queryFn: async () => (await api.get<ChecklistDetail>(`/checklists/${id}`)).data,
+  });
+}
+
+export function useUpdateChecklist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      id: string;
+      name: string;
+      standard?: string;
+      description?: string;
+      items: { question: string; section?: string; refClause?: string; isCritical: boolean }[];
+    }) => (await api.put(`/checklists/${v.id}`, v)).data,
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["checklists"] });
+      qc.invalidateQueries({ queryKey: ["checklist", v.id] });
+    },
+  });
+}
+
+export function useChecklistAssignments() {
+  return useQuery({
+    queryKey: ["checklist-assignments"],
+    queryFn: async () => (await api.get<ChecklistAssignmentRow[]>("/checklists/assignments")).data,
+  });
+}
+
+export function useSetChecklistAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { category: string; checklistId: string }) =>
+      (await api.put("/checklists/assignments", v)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklist-assignments"] }),
   });
 }
 
