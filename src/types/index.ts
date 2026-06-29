@@ -86,6 +86,32 @@ export interface StageCodesConfig {
   rules: { materialCategory: MaterialCategory; stageCode: string }[];
 }
 
+export type ComplianceResult =
+  | "Compliant"
+  | "NonCompliant"
+  | "PartiallyCompliant"
+  | "NotApplicable";
+
+export interface AuditChecklistView {
+  assigned: boolean;
+  checklistId?: string | null;
+  status: AuditStatus;
+  items: {
+    id: string;
+    orderNo: number;
+    section?: string | null;
+    question: string;
+    refClause?: string | null;
+    isCritical: boolean;
+  }[];
+  responses: {
+    checklistItemId: string;
+    result: ComplianceResult;
+    evidenceText?: string | null;
+    auditorComment?: string | null;
+  }[];
+}
+
 export type EffectivenessResult = "Effective" | "NotEffective" | "Pending";
 
 // ----- P1 additions -----
