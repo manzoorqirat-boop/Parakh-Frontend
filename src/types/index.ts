@@ -572,6 +572,7 @@ export interface AuditorProfileItem {
   experienceStartDate?: string | null;
   isCertified?: boolean;
   refresherDueOn?: string | null;
+  gxpAreas?: string | null;
   roles: AuditorRoleItem[];
 }
 
