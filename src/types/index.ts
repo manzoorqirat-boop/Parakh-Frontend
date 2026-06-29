@@ -86,12 +86,6 @@ export interface StageCodesConfig {
   rules: { materialCategory: MaterialCategory; stageCode: string }[];
 }
 
-export type ComplianceResult =
-  | "Compliant"
-  | "NonCompliant"
-  | "PartiallyCompliant"
-  | "NotApplicable";
-
 export interface AuditChecklistView {
   assigned: boolean;
   checklistId?: string | null;
