@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Plus, BadgeCheck } from "lucide-react";
 import {
   useAuditorProfiles,
-  useCreateAuditorProfile,
+  useUpdateAuditor,
   useUpdateAuditorQualification,
   useUpsertAuditorRole,
   useQualifyAuditorRole,
@@ -17,17 +18,19 @@ import type { AuditorProfileItem, DesignationLevel } from "@/types";
 
 export function AuditorsPage() {
   const { data, isLoading, error } = useAuditorProfiles();
-  const [showCreate, setShowCreate] = useState(false);
+  const [manage, setManage] = useState<AuditorProfileItem | null>(null);
 
   return (
     <>
       <PageHeader
         title="Auditors"
-        subtitle="Auditor profiles and the audit-type roles they are qualified for"
+        subtitle="Created in Master data. Here you link a login user and set §5.3 qualification."
         action={
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus size={16} /> New auditor
-          </Button>
+          <Link to="/master-data">
+            <Button variant="outline">
+              <Plus size={16} /> Create in Master data
+            </Button>
+          </Link>
         }
       />
 
@@ -38,27 +41,27 @@ export function AuditorsPage() {
       ) : !data || data.length === 0 ? (
         <EmptyState
           title="No auditors yet"
-          message="Add auditor profiles, then qualify each for the audit roles they can lead. Qualified auditors become eligible for assignment."
+          message="Create auditors under Master data → Auditors. They appear here to be linked to a user and qualified for the audit classes they can lead."
           action={
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus size={16} /> New auditor
-            </Button>
+            <Link to="/master-data">
+              <Button variant="outline">Go to Master data</Button>
+            </Link>
           }
         />
       ) : (
         <div className="space-y-4">
           {data.map((a) => (
-            <AuditorCard key={a.id} profile={a} />
+            <AuditorCard key={a.id} profile={a} onManage={() => setManage(a)} />
           ))}
         </div>
       )}
 
-      <CreateAuditorModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <ManageAuditorModal profile={manage} onClose={() => setManage(null)} />
     </>
   );
 }
 
-function AuditorCard({ profile }: { profile: AuditorProfileItem }) {
+function AuditorCard({ profile, onManage }: { profile: AuditorProfileItem; onManage: () => void }) {
   const upsert = useUpsertAuditorRole(profile.id);
   const qualify = useQualifyAuditorRole(profile.id);
   const toast = useToast();
@@ -84,6 +87,11 @@ function AuditorCard({ profile }: { profile: AuditorProfileItem }) {
     }
   }
 
+  const linked = !!profile.userId;
+  const expYears = profile.experienceStartDate
+    ? Math.max(0, new Date().getFullYear() - new Date(profile.experienceStartDate).getFullYear())
+    : 0;
+
   return (
     <Card>
       <CardBody>
@@ -96,7 +104,22 @@ function AuditorCard({ profile }: { profile: AuditorProfileItem }) {
               {profile.recordNumber}
               {!profile.isActive && " · inactive"}
             </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {linked ? (
+                <Badge tone="ok">User linked</Badge>
+              ) : (
+                <Badge tone="warn">No user — not assignable</Badge>
+              )}
+              {profile.designation && <Badge tone="muted">{profile.designation}</Badge>}
+              {profile.experienceStartDate && (
+                <Badge tone="muted">{expYears} yr exp</Badge>
+              )}
+              {profile.isCertified && <Badge tone="info">Certified</Badge>}
+            </div>
           </div>
+          <Button size="sm" variant="outline" onClick={onManage}>
+            Link user &amp; qualify
+          </Button>
         </div>
 
         <div className="mt-4">
@@ -156,65 +179,63 @@ function AuditorCard({ profile }: { profile: AuditorProfileItem }) {
   );
 }
 
-function CreateAuditorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const create = useCreateAuditorProfile();
+function ManageAuditorModal({
+  profile,
+  onClose,
+}: {
+  profile: AuditorProfileItem | null;
+  onClose: () => void;
+}) {
+  const update = useUpdateAuditor();
   const qualify = useUpdateAuditorQualification();
   const users = useUsers();
   const toast = useToast();
-  const empty = {
-    fullName: "",
+  const [form, setForm] = useState({
     userId: "",
-    certifications: "",
-    languages: "",
-    gxpAreas: "",
     designation: "Executive" as DesignationLevel,
     experienceStartDate: "",
     isCertified: false,
     certifiedOn: "",
-  };
-  const [form, setForm] = useState(empty);
+  });
+
+  // Prefill from the selected auditor each time the modal opens.
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        userId: profile.userId ?? "",
+        designation: profile.designation ?? "Executive",
+        experienceStartDate: profile.experienceStartDate ?? "",
+        isCertified: profile.isCertified ?? false,
+        certifiedOn: "",
+      });
+    }
+  }, [profile]);
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  function toJsonArray(text: string): string | null {
-    const parts = text.split(",").map((p) => p.trim()).filter(Boolean);
-    return parts.length ? JSON.stringify(parts) : null;
-  }
-
   async function submit() {
+    if (!profile) return;
     try {
-      const res = await create.mutateAsync({
-        fullName: form.fullName,
-        userId: form.userId || null,
-        certifications: toJsonArray(form.certifications),
-        languages: toJsonArray(form.languages),
-        gxpAreas: toJsonArray(form.gxpAreas),
-      });
-      // Persist designation/experience/certification so the auditor can lead audits.
+      await update.mutateAsync({ id: profile.id, userId: form.userId || null });
       await qualify.mutateAsync({
-        profileId: res.id,
+        profileId: profile.id,
         designation: form.designation,
         experienceStartDate: form.experienceStartDate || null,
         isCertified: form.isCertified,
         certifiedOn: form.certifiedOn || null,
       });
-      toast.push("Auditor created");
+      toast.push("Auditor updated");
       onClose();
-      setForm(empty);
     } catch (e) {
       toast.push(apiError(e), "error");
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="New auditor">
+    <Modal open={!!profile} onClose={onClose} title={profile ? `Manage ${profile.fullName}` : ""}>
       <div className="space-y-4">
-        <Field label="Full name">
-          <Input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} />
-        </Field>
-
         <Field label="Linked user" hint="Required to be assignable as lead/team on audits">
           <Select value={form.userId} onChange={(e) => set("userId", e.target.value)}>
             <option value="">— not linked —</option>
@@ -272,16 +293,12 @@ function CreateAuditorModal({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </div>
 
-        <Field label="GxP areas" hint="e.g. API, Sterile">
-          <Input value={form.gxpAreas} onChange={(e) => set("gxpAreas", e.target.value)} />
-        </Field>
-
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={create.isPending} disabled={!form.fullName}>
-            Create auditor
+          <Button onClick={submit} loading={update.isPending || qualify.isPending}>
+            Save
           </Button>
         </div>
       </div>
