@@ -21,6 +21,7 @@ import type {
   ChecklistDetail,
   ChecklistAssignmentRow,
   StageCodesConfig,
+  AuditChecklistView,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -155,6 +156,26 @@ export function useSetStageCode() {
     mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
       (await api.put("/numbering/stage-codes", v)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
+  });
+}
+
+export function useAuditChecklist(id: string) {
+  return useQuery({
+    queryKey: ["audit-checklist", id],
+    queryFn: async () => (await api.get<AuditChecklistView>(`/audits/${id}/checklist`)).data,
+  });
+}
+
+export function useSaveResponse(auditId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      checklistItemId: string;
+      result: string;
+      evidence?: string;
+      comment?: string;
+    }) => (await api.put(`/audits/${auditId}/responses`, v)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["audit-checklist", auditId] }),
   });
 }
 
