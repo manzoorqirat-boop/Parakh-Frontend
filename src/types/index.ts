@@ -80,6 +80,12 @@ export interface ChecklistAssignmentRow {
   checklistName?: string | null;
 }
 
+export interface StageCodesConfig {
+  prefix: string;
+  format: string;
+  rules: { materialCategory: MaterialCategory; stageCode: string }[];
+}
+
 export type EffectivenessResult = "Effective" | "NotEffective" | "Pending";
 
 // ----- P1 additions -----
