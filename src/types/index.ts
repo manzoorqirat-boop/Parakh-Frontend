@@ -56,6 +56,30 @@ export interface ChecklistListItem {
   itemCount: number;
 }
 
+export interface ChecklistItemRow {
+  id?: string;
+  orderNo?: number;
+  section?: string | null;
+  question: string;
+  refClause?: string | null;
+  isCritical: boolean;
+}
+
+export interface ChecklistDetail {
+  id: string;
+  name: string;
+  standard?: string | null;
+  version: number;
+  description?: string | null;
+  items: ChecklistItemRow[];
+}
+
+export interface ChecklistAssignmentRow {
+  category: AuditCategory;
+  checklistId: string;
+  checklistName?: string | null;
+}
+
 export type EffectivenessResult = "Effective" | "NotEffective" | "Pending";
 
 // ----- P1 additions -----
