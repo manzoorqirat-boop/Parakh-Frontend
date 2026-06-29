@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
-import { useAuditorProfiles, useAuditNumberLog } from "@/lib/hooks";
+import {
+  useAuditorProfiles,
+  useAuditNumberLog,
+  useAuditProgramme,
+  useProgrammeApprovals,
+  useApproveProgramme,
+} from "@/lib/hooks";
 import { Button, Card, CardBody, CardHeader } from "@/components/ui/primitives";
 import { Spinner, ErrorNote, EmptyState } from "@/components/ui/status";
+import { useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
-import type { AuditorProfileItem, AuditNumberLogRow } from "@/types";
+import type { AuditorProfileItem, AuditNumberLogRow, AuditProgrammeRow } from "@/types";
 
 type RegisterTab = "auditors" | "numberLog" | "programme";
 
@@ -83,13 +90,7 @@ export function RegistersPage() {
 
       {tab === "auditors" && <AuditorRegister />}
       {tab === "numberLog" && <NumberLogRegister />}
-      {tab === "programme" && (
-        <Card>
-          <CardBody className="p-6 text-sm text-gray-500">
-            Audit programme (Jan/Jul, ±6-month window) — building next.
-          </CardBody>
-        </Card>
-      )}
+      {tab === "programme" && <ProgrammeRegister />}
     </>
   );
 }
@@ -243,4 +244,186 @@ function NumberLogRegister() {
       </CardBody>
     </Card>
   );
+}
+
+// Half-year bucket key for a planned date, e.g. "2026 H1".
+function periodKey(d?: string | null): string | null {
+  if (!d) return null;
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  return `${dt.getFullYear()} ${dt.getMonth() <= 5 ? "H1" : "H2"}`;
+}
+
+function ProgrammeRegister() {
+  const { data, isLoading, error } = useAuditProgramme();
+  const approvals = useProgrammeApprovals();
+  const approve = useApproveProgramme();
+  const toast = useToast();
+  const [period, setPeriod] = useState<string>("all");
+
+  const periods = useMemoPeriods(data);
+  const rows = (data ?? []).filter((r) => period === "all" || periodKey(r.plannedDate) === period);
+  const approval =
+    period !== "all" ? approvals.data?.find((a) => a.period === period) : undefined;
+  const signStamp = approval ? `${approval.approvedByName} ${fmtDate(approval.approvedOn)}` : "";
+
+  async function signProgramme() {
+    if (period === "all") return;
+    try {
+      await approve.mutateAsync({ period });
+      toast.push("Programme signed");
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  function planned(r: AuditProgrammeRow): string {
+    if (!r.plannedDate) return "";
+    const win = r.plannedFrom && r.plannedTo ? ` (${fmtDate(r.plannedFrom)} to ${fmtDate(r.plannedTo)})` : "";
+    return `${fmtDate(r.plannedDate)}${win}`;
+  }
+
+  function exportCsv() {
+    downloadCsv(
+      "audit-programme.csv",
+      [
+        "Sr. No.",
+        "Material Name",
+        "Material Type",
+        "Manufacturer name",
+        "Manufacturer Address",
+        "Last Audit Date",
+        "Audit Planned Date (±6 Months)",
+        "Audit Date",
+        "Sign & date",
+        "Remark",
+      ],
+      rows.map((r, i) => [
+        i + 1,
+        r.materialName ?? "",
+        r.materialType ?? "",
+        r.manufacturerName ?? "",
+        r.manufacturerAddress ?? "",
+        fmtDate(r.lastAuditDate),
+        planned(r),
+        fmtDate(r.auditDate),
+        signStamp,
+        "",
+      ])
+    );
+  }
+
+  if (isLoading) return <Spinner />;
+  if (error) return <ErrorNote message={apiError(error)} />;
+  if (!data || data.length === 0)
+    return <EmptyState title="No vendors" message="Auditees with planned dates appear here as the audit programme." />;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Audit programme"
+        subtitle={`${rows.length} of ${data.length} vendor(s)`}
+        action={
+          <div className="flex items-center gap-2">
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="h-9 rounded-lg border border-[var(--pk-line)] bg-white px-2 text-sm"
+            >
+              <option value="all">All periods</option>
+              {periods.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={exportCsv}>
+              <Download size={16} /> Export CSV
+            </Button>
+          </div>
+        }
+      />
+      <CardBody className="p-0">
+        {period !== "all" && (
+          <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 px-5 py-3">
+            {approval ? (
+              <span className="text-sm text-[var(--pk-navy)]">
+                Signed for <strong>{period}</strong> by {approval.approvedByName} on{" "}
+                {fmtDate(approval.approvedOn)}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-500">
+                Programme for <strong>{period}</strong> is not signed.
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant={approval ? "outline" : "primary"}
+              onClick={signProgramme}
+              loading={approve.isPending}
+            >
+              {approval ? "Re-sign" : "Sign programme"}
+            </Button>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1100px] text-sm">
+            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
+              <tr>
+                <th className="px-4 py-3 font-medium">Sr.</th>
+                <th className="px-4 py-3 font-medium">Material</th>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium">Manufacturer</th>
+                <th className="px-4 py-3 font-medium">Address</th>
+                <th className="px-4 py-3 font-medium">Last audit</th>
+                <th className="px-4 py-3 font-medium">Planned (±6 mo)</th>
+                <th className="px-4 py-3 font-medium">Audit date</th>
+                <th className="px-4 py-3 font-medium">Sign &amp; date</th>
+                <th className="px-4 py-3 font-medium">Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={`${r.manufacturerName}-${i}`} className="border-t border-gray-100">
+                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.materialName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.materialType || "—"}</td>
+                  <td className="px-4 py-3 font-medium text-[var(--pk-navy)]">{r.manufacturerName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{r.manufacturerAddress || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{fmtDate(r.lastAuditDate) || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {r.plannedDate ? (
+                      <>
+                        <div>{fmtDate(r.plannedDate)}</div>
+                        {r.plannedFrom && r.plannedTo && (
+                          <div className="text-xs text-gray-400">
+                            {fmtDate(r.plannedFrom)} – {fmtDate(r.plannedTo)}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{fmtDate(r.auditDate) || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{signStamp}</td>
+                  <td className="px-4 py-3 text-gray-400"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// Distinct half-year periods present in the programme, sorted.
+function useMemoPeriods(data?: AuditProgrammeRow[]): string[] {
+  const set = new Set<string>();
+  (data ?? []).forEach((r) => {
+    const k = periodKey(r.plannedDate);
+    if (k) set.add(k);
+  });
+  return Array.from(set).sort();
 }
