@@ -23,6 +23,8 @@ import type {
   StageCodesConfig,
   AuditChecklistView,
   AuditNumberLogRow,
+  AuditProgrammeRow,
+  ProgrammeApproval,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -157,6 +159,29 @@ export function useSetStageCode() {
     mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
       (await api.put("/numbering/stage-codes", v)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
+  });
+}
+
+export function useProgrammeApprovals() {
+  return useQuery({
+    queryKey: ["programme-approvals"],
+    queryFn: async () => (await api.get<ProgrammeApproval[]>("/audits/programme/approvals")).data,
+  });
+}
+
+export function useApproveProgramme() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { period: string; note?: string }) =>
+      (await api.post("/audits/programme/approve", v)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["programme-approvals"] }),
+  });
+}
+
+export function useAuditProgramme() {
+  return useQuery({
+    queryKey: ["audit-programme"],
+    queryFn: async () => (await api.get<AuditProgrammeRow[]>("/audits/programme")).data,
   });
 }
 
