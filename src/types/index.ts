@@ -80,6 +80,17 @@ export interface ChecklistAssignmentRow {
   checklistName?: string | null;
 }
 
+export interface AuditNumberLogRow {
+  auditNo: string;
+  scheduledDate?: string | null;
+  auditors?: string | null;
+  companyName?: string | null;
+  companyAddress?: string | null;
+  materialName?: string | null;
+  complianceAcceptanceDate?: string | null;
+  nextDueDate?: string | null;
+}
+
 export interface StageCodesConfig {
   prefix: string;
   format: string;
