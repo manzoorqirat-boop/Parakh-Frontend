@@ -91,6 +91,25 @@ export interface AuditNumberLogRow {
   nextDueDate?: string | null;
 }
 
+export interface AuditProgrammeRow {
+  materialName?: string | null;
+  materialType?: string | null;
+  manufacturerName?: string | null;
+  manufacturerAddress?: string | null;
+  lastAuditDate?: string | null;
+  plannedDate?: string | null;
+  plannedFrom?: string | null;
+  plannedTo?: string | null;
+  auditDate?: string | null;
+}
+
+export interface ProgrammeApproval {
+  period: string;
+  approvedByName: string;
+  approvedOn: string;
+  note?: string | null;
+}
+
 export interface StageCodesConfig {
   prefix: string;
   format: string;
