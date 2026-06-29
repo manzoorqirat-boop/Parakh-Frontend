@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Plus,
   Upload,
@@ -10,6 +10,7 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import {
   useMasterSchemas,
@@ -49,6 +50,15 @@ import type {
   MasterEntityType,
 } from "@/types";
 import { ErpConnectionsPanel } from "@/components/mdm/ErpConnectionsPanel";
+import {
+  useChecklists,
+  useChecklist,
+  useCreateChecklist,
+  useUpdateChecklist,
+  useChecklistAssignments,
+  useSetChecklistAssignment,
+} from "@/lib/hooks";
+import type { ChecklistItemRow, AuditCategory } from "@/types";
 
 type Mode = "create" | "excel" | "erp";
 
@@ -56,6 +66,7 @@ export function MasterDataPage() {
   const { data: schemas, isLoading, error } = useMasterSchemas();
   const [activeType, setActiveType] = useState<MasterEntityType | null>(null);
   const [mode, setMode] = useState<Mode>("create");
+  const [showChecklists, setShowChecklists] = useState(false);
 
   const schema = useMemo(
     () => schemas?.find((s) => s.entityType === (activeType ?? schemas[0]?.entityType)),
@@ -84,11 +95,14 @@ export function MasterDataPage() {
       {/* Entity switcher */}
       <div className="mb-6 flex flex-wrap gap-2">
         {schemas.map((s) => {
-          const active = s.entityType === current.entityType;
+          const active = !showChecklists && s.entityType === current.entityType;
           return (
             <button
               key={s.entityType}
-              onClick={() => setActiveType(s.entityType)}
+              onClick={() => {
+                setActiveType(s.entityType);
+                setShowChecklists(false);
+              }}
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
                 active
@@ -100,43 +114,60 @@ export function MasterDataPage() {
             </button>
           );
         })}
+        <button
+          onClick={() => setShowChecklists(true)}
+          className={cn(
+            "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+            showChecklists
+              ? "border-[var(--pk-navy)] bg-[var(--pk-navy)] text-white"
+              : "border-[var(--pk-line)] bg-white text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          Checklists
+        </button>
       </div>
 
-      {/* Mode tabs */}
-      <div className="mb-5 inline-flex rounded-lg border border-[var(--pk-line)] bg-white p-1">
-        {(
-          [
-            { id: "create", label: "Create", icon: Plus },
-            { id: "excel", label: "Excel upload", icon: FileSpreadsheet },
-            { id: "erp", label: "ERP sync", icon: Server },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setMode(t.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              mode === t.id
-                ? "bg-[var(--pk-navy)] text-white"
-                : "text-gray-600 hover:bg-gray-100"
-            )}
-          >
-            <t.icon size={15} />
-            <span className="hidden sm:inline">{t.label}</span>
-          </button>
-        ))}
-      </div>
+      {showChecklists ? (
+        <ChecklistAdminPanel />
+      ) : (
+        <>
+          {/* Mode tabs */}
+          <div className="mb-5 inline-flex rounded-lg border border-[var(--pk-line)] bg-white p-1">
+            {(
+              [
+                { id: "create", label: "Create", icon: Plus },
+                { id: "excel", label: "Excel upload", icon: FileSpreadsheet },
+                { id: "erp", label: "ERP sync", icon: Server },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setMode(t.id)}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  mode === t.id
+                    ? "bg-[var(--pk-navy)] text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                <t.icon size={15} />
+                <span className="hidden sm:inline">{t.label}</span>
+              </button>
+            ))}
+          </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {mode === "create" && <CreatePanel schema={current} />}
-          {mode === "excel" && <ExcelPanel schema={current} />}
-          {mode === "erp" && <ErpPanel schema={current} />}
-        </div>
-        <div>
-          <RecentRunsCard type={current.entityType} />
-        </div>
-      </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              {mode === "create" && <CreatePanel schema={current} />}
+              {mode === "excel" && <ExcelPanel schema={current} />}
+              {mode === "erp" && <ErpPanel schema={current} />}
+            </div>
+            <div>
+              <RecentRunsCard type={current.entityType} />
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -783,5 +814,275 @@ function RowStateBadge({ state }: { state: ImportRowState }) {
       {icon}
       {state}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+//  Checklists — template authoring (create/edit items, version, assign by type)
+// ---------------------------------------------------------------------------
+
+const AUDIT_CATEGORIES: { value: AuditCategory; label: string }[] = [
+  { value: "FirstTime", label: "First time" },
+  { value: "Periodic", label: "Periodic" },
+  { value: "FollowUp", label: "Follow-up" },
+  { value: "ForCause", label: "For cause" },
+  { value: "Desk", label: "Desk audit" },
+];
+
+function ChecklistAdminPanel() {
+  const { data: list } = useChecklists();
+  const [editId, setEditId] = useState<string | "new" | null>(null);
+
+  if (editId) {
+    return <ChecklistEditor editId={editId} onClose={() => setEditId(null)} />;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="lg:col-span-2">
+        <Card>
+          <CardHeader
+            title="Checklist templates"
+            subtitle="Author the questionnaire used during audits"
+            action={
+              <Button onClick={() => setEditId("new")}>
+                <Plus size={16} /> New template
+              </Button>
+            }
+          />
+          <CardBody className="p-0">
+            {!list || list.length === 0 ? (
+              <div className="p-6 text-sm text-gray-500">
+                No templates yet. Create one, then assign it to an audit category below.
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Name</th>
+                    <th className="px-5 py-3 font-medium">Standard</th>
+                    <th className="px-5 py-3 font-medium">Version</th>
+                    <th className="px-5 py-3 font-medium">Items</th>
+                    <th className="px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((c) => (
+                    <tr key={c.id} className="border-t border-gray-100">
+                      <td className="px-5 py-3 font-medium text-[var(--pk-navy)]">{c.name}</td>
+                      <td className="px-5 py-3 text-gray-500">{c.standard || "—"}</td>
+                      <td className="px-5 py-3 text-gray-500">v{c.version}</td>
+                      <td className="px-5 py-3 text-gray-500">{c.itemCount}</td>
+                      <td className="px-5 py-3 text-right">
+                        <Button size="sm" variant="outline" onClick={() => setEditId(c.id)}>
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+      <div>
+        <AssignmentsCard />
+      </div>
+    </div>
+  );
+}
+
+function AssignmentsCard() {
+  const { data: list } = useChecklists();
+  const { data: assignments } = useChecklistAssignments();
+  const setAssign = useSetChecklistAssignment();
+  const toast = useToast();
+
+  function current(cat: AuditCategory): string {
+    return assignments?.find((a) => a.category === cat)?.checklistId ?? "";
+  }
+
+  async function change(cat: AuditCategory, checklistId: string) {
+    if (!checklistId) return;
+    try {
+      await setAssign.mutateAsync({ category: cat, checklistId });
+      toast.push("Default checklist set");
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Default by audit type" subtitle="Auto-attached when an audit is created" />
+      <CardBody className="space-y-3">
+        {AUDIT_CATEGORIES.map((c) => (
+          <Field key={c.value} label={c.label}>
+            <Select value={current(c.value)} onChange={(e) => change(c.value, e.target.value)}>
+              <option value="">— none —</option>
+              {list?.map((cl) => (
+                <option key={cl.id} value={cl.id}>
+                  {cl.name} (v{cl.version})
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ))}
+      </CardBody>
+    </Card>
+  );
+}
+
+function ChecklistEditor({ editId, onClose }: { editId: string | "new"; onClose: () => void }) {
+  const isNew = editId === "new";
+  const { data: detail } = useChecklist(isNew ? undefined : editId);
+  const create = useCreateChecklist();
+  const update = useUpdateChecklist();
+  const toast = useToast();
+
+  const [name, setName] = useState("");
+  const [standard, setStandard] = useState("");
+  const [description, setDescription] = useState("");
+  const [items, setItems] = useState<ChecklistItemRow[]>([]);
+
+  useEffect(() => {
+    if (detail && !isNew) {
+      setName(detail.name);
+      setStandard(detail.standard ?? "");
+      setDescription(detail.description ?? "");
+      setItems(detail.items.map((i) => ({ ...i })));
+    }
+  }, [detail, isNew]);
+
+  function addRow() {
+    setItems((rows) => [...rows, { question: "", section: "", refClause: "", isCritical: false }]);
+  }
+  function removeRow(idx: number) {
+    setItems((rows) => rows.filter((_, i) => i !== idx));
+  }
+  function setRow(idx: number, patch: Partial<ChecklistItemRow>) {
+    setItems((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  }
+
+  async function save() {
+    const body = {
+      name: name.trim(),
+      standard: standard.trim() || undefined,
+      description: description.trim() || undefined,
+      items: items
+        .filter((i) => i.question.trim())
+        .map((i) => ({
+          question: i.question.trim(),
+          section: i.section?.trim() || undefined,
+          refClause: i.refClause?.trim() || undefined,
+          isCritical: i.isCritical,
+        })),
+    };
+    if (!body.name) {
+      toast.push("Name is required", "error");
+      return;
+    }
+    try {
+      if (isNew) {
+        await create.mutateAsync(body);
+        toast.push("Template created");
+      } else {
+        const res = await update.mutateAsync({ id: editId, ...body });
+        toast.push(res?.forked ? `Saved as new version v${res.version}` : "Template updated");
+      }
+      onClose();
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  // Group rows by section header as the user types (display aid only).
+  return (
+    <Card>
+      <CardHeader
+        title={isNew ? "New checklist template" : `Edit: ${detail?.name ?? ""}`}
+        subtitle="Add sections and items. A version already used by an audit forks a new version on save."
+        action={
+          <Button variant="outline" onClick={onClose}>
+            Back
+          </Button>
+        }
+      />
+      <CardBody className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Template name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. General Vendor Audit Checklist" />
+          </Field>
+          <Field label="Standard / reference">
+            <Input value={standard} onChange={(e) => setStandard(e.target.value)} placeholder="e.g. ICH Q7" />
+          </Field>
+        </div>
+        <Field label="Description">
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+
+        <div className="rounded-lg border border-[var(--pk-line)]">
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+            <span className="text-sm font-medium text-[var(--pk-navy)]">Items ({items.length})</span>
+            <Button size="sm" variant="outline" onClick={addRow}>
+              <Plus size={14} /> Add item
+            </Button>
+          </div>
+          {items.length === 0 ? (
+            <div className="p-4 text-sm text-gray-400">No items yet — add rows and fill in your content.</div>
+          ) : (
+            <div className="max-h-[28rem] overflow-y-auto">
+              {items.map((row, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 border-b border-gray-50 p-2">
+                  <div className="col-span-3">
+                    <Input
+                      value={row.section ?? ""}
+                      placeholder="Section"
+                      onChange={(e) => setRow(idx, { section: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-6">
+                    <Input
+                      value={row.question}
+                      placeholder="Item / question"
+                      onChange={(e) => setRow(idx, { question: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-1">
+                    <label className="flex items-center gap-1 text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={row.isCritical}
+                        onChange={(e) => setRow(idx, { isCritical: e.target.checked })}
+                      />
+                      Critical
+                    </label>
+                  </div>
+                  <div className="col-span-1 flex items-center justify-end">
+                    <button
+                      onClick={() => removeRow(idx)}
+                      className="text-gray-400 hover:text-red-600"
+                      title="Remove"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} loading={create.isPending || update.isPending} disabled={!name.trim()}>
+            {isNew ? "Create template" : "Save"}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
