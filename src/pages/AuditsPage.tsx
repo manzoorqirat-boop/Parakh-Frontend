@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { useAudits, useCreateAudit, useAuditees } from "@/lib/hooks";
+import { useAudits, useCreateAudit, useSupplierParents, useSupplierSites } from "@/lib/hooks";
 import {
   Button,
   Card,
@@ -85,7 +85,7 @@ export function AuditsPage() {
               <thead>
                 <tr className="border-b border-[var(--pk-line)] text-left text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-3 font-medium">Audit no.</th>
-                  <th className="px-5 py-3 font-medium">Auditee</th>
+                  <th className="px-5 py-3 font-medium">Supplier</th>
                   <th className="px-5 py-3 font-medium">Category</th>
                   <th className="px-5 py-3 font-medium">Type</th>
                   <th className="px-5 py-3 font-medium">Status</th>
@@ -159,12 +159,14 @@ function CreateAuditModal({
   onClose: () => void;
 }) {
   const create = useCreateAudit();
-  const auditees = useAuditees();
+  const suppliers = useSupplierParents();
+  const [supplierId, setSupplierId] = useState("");
+  const sites = useSupplierSites(supplierId || undefined);
   const toast = useToast();
-  const [auditeeId, setAuditeeId] = useState("");
+  const [supplierSiteId, setSupplierSiteId] = useState("");
   const [type, setType] = useState<AuditType>("Onsite");
   const [category, setCategory] = useState<AuditCategory>("FirstTime");
-  // Empty string = let the backend auto-derive the class from the auditee.
+  // Empty string = let the backend auto-derive the class from the supplier site.
   const [klass, setKlass] = useState<AuditClass | "">("");
   const [scope, setScope] = useState("");
   const [objective, setObjective] = useState("");
@@ -172,7 +174,7 @@ function CreateAuditModal({
   async function submit() {
     try {
       await create.mutateAsync({
-        auditeeId,
+        supplierSiteId,
         type,
         category,
         scope,
@@ -181,7 +183,8 @@ function CreateAuditModal({
       });
       toast.push("Audit created");
       onClose();
-      setAuditeeId("");
+      setSupplierId("");
+      setSupplierSiteId("");
       setCategory("FirstTime");
       setKlass("");
       setScope("");
@@ -194,12 +197,36 @@ function CreateAuditModal({
   return (
     <Modal open={open} onClose={onClose} title="New audit">
       <div className="space-y-4">
-        <Field label="Auditee">
-          <Select value={auditeeId} onChange={(e) => setAuditeeId(e.target.value)}>
-            <option value="">Select an auditee…</option>
-            {auditees.data?.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.code})
+        <Field label="Supplier">
+          <Select
+            value={supplierId}
+            onChange={(e) => {
+              setSupplierId(e.target.value);
+              setSupplierSiteId("");
+            }}
+          >
+            <option value="">Select a supplier…</option>
+            {suppliers.data?.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.displayName || s.legalName}
+                {s.recordNumber ? ` (${s.recordNumber})` : ""}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Site" hint="The specific site being audited">
+          <Select
+            value={supplierSiteId}
+            onChange={(e) => setSupplierSiteId(e.target.value)}
+            disabled={!supplierId}
+          >
+            <option value="">
+              {supplierId ? "Select a site…" : "Choose a supplier first"}
+            </option>
+            {sites.data?.map((st) => (
+              <option key={st.id} value={st.id}>
+                {st.siteName}
+                {st.siteType ? ` · ${st.siteType}` : ""}
               </option>
             ))}
           </Select>
@@ -230,7 +257,7 @@ function CreateAuditModal({
             value={klass}
             onChange={(e) => setKlass(e.target.value as AuditClass | "")}
           >
-            <option value="">Auto (derive from auditee)</option>
+            <option value="">Auto (derive from supplier)</option>
             <option value="A">A — API</option>
             <option value="B">B — KSM / intermediate / excipient / primary packaging</option>
             <option value="C">C — Others</option>
@@ -255,7 +282,7 @@ function CreateAuditModal({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={create.isPending} disabled={!auditeeId}>
+          <Button onClick={submit} loading={create.isPending} disabled={!supplierSiteId}>
             Create audit
           </Button>
         </div>
