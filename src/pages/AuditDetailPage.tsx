@@ -9,6 +9,8 @@ import {
   useChecklists,
   useCreateChecklist,
   useAuditorProfiles,
+  useAuditChecklist,
+  useSaveResponse,
 } from "@/lib/hooks";
 import {
   Button,
@@ -87,6 +89,7 @@ export function AuditDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <FindingsCard audit={data} />
+          <ExecutionChecklistCard audit={data} />
           <ComplianceCard audit={data} />
         </div>
         <div className="space-y-6">
@@ -220,6 +223,128 @@ function ChecklistCard({ audit }: { audit: AuditDetail }) {
         )}
       </CardBody>
     </Card>
+  );
+}
+
+function ExecutionChecklistCard({ audit }: { audit: AuditDetail }) {
+  const { data, isLoading } = useAuditChecklist(audit.id);
+  if (isLoading || !data || !data.assigned) return null;
+
+  const editable = data.status === "InProgress";
+  const respMap = new Map(data.responses.map((r) => [r.checklistItemId, r]));
+
+  // Preserve order while grouping by section.
+  const sections: { name: string; items: typeof data.items }[] = [];
+  for (const it of data.items) {
+    const key = it.section || "General";
+    let g = sections.find((s) => s.name === key);
+    if (!g) {
+      g = { name: key, items: [] };
+      sections.push(g);
+    }
+    g.items.push(it);
+  }
+
+  const answered = data.responses.length;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Audit checklist"
+        subtitle={
+          editable
+            ? `Record a result for each item — ${answered}/${data.items.length} done`
+            : "Read-only — responses can only be recorded while the audit is In Progress"
+        }
+      />
+      <CardBody className="space-y-5">
+        {sections.map((sec) => (
+          <div key={sec.name}>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {sec.name}
+            </div>
+            <div className="space-y-3">
+              {sec.items.map((it) => (
+                <ChecklistResponseRow
+                  key={it.id}
+                  auditId={audit.id}
+                  item={it}
+                  response={respMap.get(it.id)}
+                  disabled={!editable}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardBody>
+    </Card>
+  );
+}
+
+function ChecklistResponseRow({
+  auditId,
+  item,
+  response,
+  disabled,
+}: {
+  auditId: string;
+  item: { id: string; question: string; refClause?: string | null; isCritical: boolean };
+  response?: { result: string; evidenceText?: string | null; auditorComment?: string | null };
+  disabled: boolean;
+}) {
+  const save = useSaveResponse(auditId);
+  const toast = useToast();
+  const [result, setResult] = useState(response?.result ?? "");
+  const [evidence, setEvidence] = useState(response?.evidenceText ?? "");
+  const [comment, setComment] = useState(response?.auditorComment ?? "");
+
+  async function doSave() {
+    if (!result) return;
+    try {
+      await save.mutateAsync({ checklistItemId: item.id, result, evidence, comment });
+      toast.push("Saved");
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-100 p-3">
+      <div className="flex items-start gap-2">
+        <span className="text-sm text-gray-700">{item.question}</span>
+        {item.isCritical && <Badge tone="danger">Critical</Badge>}
+        {response && <Badge tone="ok">answered</Badge>}
+      </div>
+      {item.refClause && <div className="mt-0.5 text-xs text-gray-400">{item.refClause}</div>}
+      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-4">
+        <Select value={result} onChange={(e) => setResult(e.target.value)} disabled={disabled}>
+          <option value="">Result…</option>
+          <option value="Compliant">Compliant</option>
+          <option value="NonCompliant">Non-compliant</option>
+          <option value="PartiallyCompliant">Partially compliant</option>
+          <option value="NotApplicable">N/A</option>
+        </Select>
+        <Input
+          className="sm:col-span-1"
+          placeholder="Evidence"
+          value={evidence}
+          onChange={(e) => setEvidence(e.target.value)}
+          disabled={disabled}
+        />
+        <Input
+          className="sm:col-span-1"
+          placeholder="Comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          disabled={disabled}
+        />
+        {!disabled && (
+          <Button size="sm" onClick={doSave} loading={save.isPending} disabled={!result}>
+            Save
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
