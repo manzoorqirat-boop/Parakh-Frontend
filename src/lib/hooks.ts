@@ -20,6 +20,7 @@ import type {
   ChecklistListItem,
   ChecklistDetail,
   ChecklistAssignmentRow,
+  StageCodesConfig,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -138,6 +139,22 @@ export function useCreateChecklist() {
       items: { question: string; section?: string; refClause?: string; isCritical: boolean }[];
     }) => (await api.post("/checklists", body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
+}
+
+export function useStageCodes() {
+  return useQuery({
+    queryKey: ["stage-codes"],
+    queryFn: async () => (await api.get<StageCodesConfig>("/numbering/stage-codes")).data,
+  });
+}
+
+export function useSetStageCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
+      (await api.put("/numbering/stage-codes", v)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
   });
 }
 
