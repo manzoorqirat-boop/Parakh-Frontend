@@ -122,6 +122,26 @@ export interface VendorRegistrationListItem {
   createdAt?: string | null;
 }
 
+export interface VendorRegistrationDetail {
+  id: string;
+  vendorEmail: string;
+  vendorName?: string | null;
+  status: string;
+  templateId: string;
+  supplierParentId?: string | null;
+  supplierSiteId?: string | null;
+  expiryDate?: string | null;
+  submittedData?: string | null;
+  submittedAt?: string | null;
+  signerName?: string | null;
+  signatureImage?: string | null;
+  signedAt?: string | null;
+  signerIp?: string | null;
+  reviewNote?: string | null;
+  createdAt?: string | null;
+  fields: { section?: string | null; label: string; fieldKey: string; fieldType: string }[];
+}
+
 export interface VendorFormListItem {
   id: string;
   name: string;
