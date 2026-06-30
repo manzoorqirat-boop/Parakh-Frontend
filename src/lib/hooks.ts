@@ -28,6 +28,7 @@ import type {
   VendorFormListItem,
   VendorFormDetail,
   VendorFormFieldRow,
+  VendorRegistrationListItem,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -162,6 +163,27 @@ export function useSetStageCode() {
     mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
       (await api.put("/numbering/stage-codes", v)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
+  });
+}
+
+export function useVendorRegistrations() {
+  return useQuery({
+    queryKey: ["vendor-registrations"],
+    queryFn: async () => (await api.get<VendorRegistrationListItem[]>("/vendor-registrations")).data,
+  });
+}
+
+export function useInitiateRegistration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      templateId: string;
+      vendorEmail: string;
+      vendorName?: string;
+      supplierParentId?: string;
+      expiryDays?: number;
+    }) => (await api.post<{ id: string; token: string; expiryDate: string }>("/vendor-registrations", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor-registrations"] }),
   });
 }
 
