@@ -110,6 +110,35 @@ export interface ProgrammeApproval {
   note?: string | null;
 }
 
+export interface VendorFormListItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  version: number;
+  isActive: boolean;
+  fieldCount: number;
+}
+
+export interface VendorFormFieldRow {
+  id?: string;
+  orderNo?: number;
+  section?: string | null;
+  label: string;
+  fieldKey: string;
+  fieldType: string; // text|textarea|date|number|email|select|boolean
+  required: boolean;
+  options?: string | null;
+}
+
+export interface VendorFormDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  version: number;
+  isActive: boolean;
+  fields: VendorFormFieldRow[];
+}
+
 export interface StageCodesConfig {
   prefix: string;
   format: string;
