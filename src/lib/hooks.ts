@@ -25,6 +25,9 @@ import type {
   AuditNumberLogRow,
   AuditProgrammeRow,
   ProgrammeApproval,
+  VendorFormListItem,
+  VendorFormDetail,
+  VendorFormFieldRow,
   ComplianceReport,
   AdequacyDecision,
   ComplianceVerificationMethod,
@@ -159,6 +162,49 @@ export function useSetStageCode() {
     mutationFn: async (v: { materialCategory: string; stageCode: string }) =>
       (await api.put("/numbering/stage-codes", v)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stage-codes"] }),
+  });
+}
+
+export function useVendorForms() {
+  return useQuery({
+    queryKey: ["vendor-forms"],
+    queryFn: async () => (await api.get<VendorFormListItem[]>("/vendor-forms")).data,
+  });
+}
+
+export function useVendorForm(id?: string) {
+  return useQuery({
+    queryKey: ["vendor-form", id],
+    enabled: !!id,
+    queryFn: async () => (await api.get<VendorFormDetail>(`/vendor-forms/${id}`)).data,
+  });
+}
+
+export function useCreateVendorForm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      name: string;
+      description?: string;
+      fields: VendorFormFieldRow[];
+    }) => (await api.post("/vendor-forms", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor-forms"] }),
+  });
+}
+
+export function useUpdateVendorForm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      id: string;
+      name: string;
+      description?: string;
+      fields: VendorFormFieldRow[];
+    }) => (await api.put(`/vendor-forms/${v.id}`, v)).data,
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["vendor-forms"] });
+      qc.invalidateQueries({ queryKey: ["vendor-form", v.id] });
+    },
   });
 }
 
