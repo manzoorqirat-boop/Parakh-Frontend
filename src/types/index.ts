@@ -110,6 +110,18 @@ export interface ProgrammeApproval {
   note?: string | null;
 }
 
+export interface VendorRegistrationListItem {
+  id: string;
+  vendorEmail: string;
+  vendorName?: string | null;
+  status: string;
+  token: string;
+  templateName?: string | null;
+  submittedAt?: string | null;
+  expiryDate?: string | null;
+  createdAt?: string | null;
+}
+
 export interface VendorFormListItem {
   id: string;
   name: string;
