@@ -35,6 +35,7 @@ import { QualityAgreementsPage } from "@/pages/QualityAgreementsPage";
 import { AuditorsPage } from "@/pages/AuditorsPage";
 import { RegistersPage } from "@/pages/RegistersPage";
 import { VendorRegistrationsPage } from "@/pages/VendorRegistrationsPage";
+import { VendorFormPublicPage } from "@/pages/VendorFormPublicPage";
 import { MasterDataPage } from "@/pages/MasterDataPage";
 
 const queryClient = new QueryClient({
@@ -66,6 +67,7 @@ function LoginGate() {
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginGate /> },
+  { path: "/vendor-form/:token", element: <VendorFormPublicPage /> },
   {
     element: <Protected />,
     children: [
