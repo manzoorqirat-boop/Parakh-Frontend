@@ -59,8 +59,12 @@ import {
   useSetChecklistAssignment,
   useStageCodes,
   useSetStageCode,
+  useVendorForms,
+  useVendorForm,
+  useCreateVendorForm,
+  useUpdateVendorForm,
 } from "@/lib/hooks";
-import type { ChecklistItemRow, AuditCategory, MaterialCategory } from "@/types";
+import type { ChecklistItemRow, AuditCategory, MaterialCategory, VendorFormFieldRow } from "@/types";
 
 type Mode = "create" | "excel" | "erp";
 
@@ -68,7 +72,7 @@ export function MasterDataPage() {
   const { data: schemas, isLoading, error } = useMasterSchemas();
   const [activeType, setActiveType] = useState<MasterEntityType | null>(null);
   const [mode, setMode] = useState<Mode>("create");
-  const [customTab, setCustomTab] = useState<"checklists" | "numbering" | null>(null);
+  const [customTab, setCustomTab] = useState<"checklists" | "numbering" | "vendorform" | null>(null);
 
   const schema = useMemo(
     () => schemas?.find((s) => s.entityType === (activeType ?? schemas[0]?.entityType)),
@@ -119,6 +123,7 @@ export function MasterDataPage() {
         {([
           { id: "checklists", label: "Checklists" },
           { id: "numbering", label: "Numbering" },
+          { id: "vendorform", label: "Vendor form" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -139,6 +144,8 @@ export function MasterDataPage() {
         <ChecklistAdminPanel />
       ) : customTab === "numbering" ? (
         <NumberingAdminPanel />
+      ) : customTab === "vendorform" ? (
+        <VendorFormAdminPanel />
       ) : (
         <>
           {/* Mode tabs */}
@@ -1207,5 +1214,231 @@ function NumberingAdminPanel() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+//  Vendor registration form — configurable template authoring
+// ---------------------------------------------------------------------------
+
+const FIELD_TYPES = ["text", "textarea", "date", "number", "email", "select", "boolean"] as const;
+
+function VendorFormAdminPanel() {
+  const { data: list } = useVendorForms();
+  const [editId, setEditId] = useState<string | "new" | null>(null);
+
+  if (editId) return <VendorFormEditor editId={editId} onClose={() => setEditId(null)} />;
+
+  return (
+    <Card>
+      <CardHeader
+        title="Vendor registration form"
+        subtitle="Author the form vendors fill in when registering"
+        action={
+          <Button onClick={() => setEditId("new")}>
+            <Plus size={16} /> New template
+          </Button>
+        }
+      />
+      <CardBody className="p-0">
+        {!list || list.length === 0 ? (
+          <div className="p-6 text-sm text-gray-500">
+            No vendor form yet. Create one, then it can be sent to vendors to fill in.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
+              <tr>
+                <th className="px-5 py-3 font-medium">Name</th>
+                <th className="px-5 py-3 font-medium">Version</th>
+                <th className="px-5 py-3 font-medium">Fields</th>
+                <th className="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((t) => (
+                <tr key={t.id} className="border-t border-gray-100">
+                  <td className="px-5 py-3 font-medium text-[var(--pk-navy)]">{t.name}</td>
+                  <td className="px-5 py-3 text-gray-500">v{t.version}</td>
+                  <td className="px-5 py-3 text-gray-500">{t.fieldCount}</td>
+                  <td className="px-5 py-3 text-right">
+                    <Button size="sm" variant="outline" onClick={() => setEditId(t.id)}>
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
+function VendorFormEditor({ editId, onClose }: { editId: string | "new"; onClose: () => void }) {
+  const isNew = editId === "new";
+  const { data: detail } = useVendorForm(isNew ? undefined : editId);
+  const create = useCreateVendorForm();
+  const update = useUpdateVendorForm();
+  const toast = useToast();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [fields, setFields] = useState<VendorFormFieldRow[]>([]);
+
+  useEffect(() => {
+    if (detail && !isNew) {
+      setName(detail.name);
+      setDescription(detail.description ?? "");
+      setFields(detail.fields.map((f) => ({ ...f })));
+    }
+  }, [detail, isNew]);
+
+  function addRow() {
+    setFields((rows) => [
+      ...rows,
+      { label: "", fieldKey: "", fieldType: "text", required: false, section: "", options: "" },
+    ]);
+  }
+  function removeRow(idx: number) {
+    setFields((rows) => rows.filter((_, i) => i !== idx));
+  }
+  function setRow(idx: number, patch: Partial<VendorFormFieldRow>) {
+    setFields((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  }
+
+  async function save() {
+    const body = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      fields: fields
+        .filter((f) => f.label.trim())
+        .map((f) => ({
+          label: f.label.trim(),
+          fieldKey: (f.fieldKey || "").trim(),
+          fieldType: f.fieldType || "text",
+          required: f.required,
+          section: f.section?.trim() || undefined,
+          options: f.fieldType === "select" ? f.options?.trim() || undefined : undefined,
+        })),
+    };
+    if (!body.name) {
+      toast.push("Name is required", "error");
+      return;
+    }
+    try {
+      if (isNew) {
+        await create.mutateAsync(body);
+        toast.push("Vendor form created");
+      } else {
+        const res = await update.mutateAsync({ id: editId, ...body });
+        toast.push(res?.forked ? `Saved as new version v${res.version}` : "Vendor form updated");
+      }
+      onClose();
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title={isNew ? "New vendor form" : `Edit: ${detail?.name ?? ""}`}
+        subtitle="Define the fields the vendor fills in. A form already used by a registration forks a new version on save."
+        action={
+          <Button variant="outline" onClick={onClose}>
+            Back
+          </Button>
+        }
+      />
+      <CardBody className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Form name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Vendor Registration Form" />
+          </Field>
+          <Field label="Description">
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="rounded-lg border border-[var(--pk-line)]">
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+            <span className="text-sm font-medium text-[var(--pk-navy)]">Fields ({fields.length})</span>
+            <Button size="sm" variant="outline" onClick={addRow}>
+              <Plus size={14} /> Add field
+            </Button>
+          </div>
+          {fields.length === 0 ? (
+            <div className="p-4 text-sm text-gray-400">No fields yet — add rows and define your content.</div>
+          ) : (
+            <div className="max-h-[28rem] space-y-2 overflow-y-auto p-2">
+              {fields.map((row, idx) => (
+                <div key={idx} className="rounded-lg border border-gray-100 p-2">
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-3">
+                      <Input
+                        value={row.section ?? ""}
+                        placeholder="Section"
+                        onChange={(e) => setRow(idx, { section: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-5">
+                      <Input
+                        value={row.label}
+                        placeholder="Field label"
+                        onChange={(e) => setRow(idx, { label: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Select value={row.fieldType} onChange={(e) => setRow(idx, { fieldType: e.target.value })}>
+                        {FIELD_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="col-span-1 flex items-center">
+                      <label className="flex items-center gap-1 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={row.required}
+                          onChange={(e) => setRow(idx, { required: e.target.checked })}
+                        />
+                        Req
+                      </label>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end">
+                      <button onClick={() => removeRow(idx)} className="text-gray-400 hover:text-red-600" title="Remove">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                  {row.fieldType === "select" && (
+                    <div className="mt-2">
+                      <Input
+                        value={row.options ?? ""}
+                        placeholder='Options as JSON array, e.g. ["Yes","No","NA"]'
+                        onChange={(e) => setRow(idx, { options: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} loading={create.isPending || update.isPending} disabled={!name.trim()}>
+            {isNew ? "Create form" : "Save"}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
