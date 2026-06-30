@@ -34,6 +34,7 @@ import { ChangeNotificationsPage } from "@/pages/ChangeNotificationsPage";
 import { QualityAgreementsPage } from "@/pages/QualityAgreementsPage";
 import { AuditorsPage } from "@/pages/AuditorsPage";
 import { RegistersPage } from "@/pages/RegistersPage";
+import { VendorRegistrationsPage } from "@/pages/VendorRegistrationsPage";
 import { MasterDataPage } from "@/pages/MasterDataPage";
 
 const queryClient = new QueryClient({
@@ -86,6 +87,7 @@ const router = createBrowserRouter([
           { path: "/quality-agreements", element: <QualityAgreementsPage /> },
           { path: "/auditors", element: <AuditorsPage /> },
           { path: "/registers", element: <RegistersPage /> },
+          { path: "/vendor-registrations", element: <VendorRegistrationsPage /> },
           { path: "/master-data", element: <MasterDataPage /> },
           { path: "/auditees", element: <AuditeesPage /> },
           { path: "/auditees/:id", element: <AuditeeDetailPage /> },
