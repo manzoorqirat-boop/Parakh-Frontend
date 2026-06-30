@@ -7,12 +7,11 @@ import {
   useVendorRegistration,
   useReviewRegistration,
 } from "@/lib/hooks";
-import { Button, Card, CardBody, CardHeader, Field, Input, Select } from "@/components/ui/primitives";
+import { Button, Card, CardBody, Field, Input, Select } from "@/components/ui/primitives";
 import { Spinner, ErrorNote, EmptyState, Badge } from "@/components/ui/status";
 import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
 import { apiError } from "@/lib/api";
-import type { VendorRegistrationListItem } from "@/types";
 
 function statusTone(s: string): "neutral" | "ok" | "warn" | "danger" | "info" | "muted" {
   switch (s) {
