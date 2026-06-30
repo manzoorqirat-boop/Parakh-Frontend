@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Plus, Copy } from "lucide-react";
-import { useVendorRegistrations, useInitiateRegistration, useVendorForms } from "@/lib/hooks";
+import {
+  useVendorRegistrations,
+  useInitiateRegistration,
+  useVendorForms,
+  useVendorRegistration,
+  useReviewRegistration,
+} from "@/lib/hooks";
 import { Button, Card, CardBody, CardHeader, Field, Input, Select } from "@/components/ui/primitives";
 import { Spinner, ErrorNote, EmptyState, Badge } from "@/components/ui/status";
 import { Modal, useToast } from "@/components/ui/overlay";
@@ -39,6 +45,7 @@ function fmtDate(d?: string | null): string {
 export function VendorRegistrationsPage() {
   const { data, isLoading, error } = useVendorRegistrations();
   const [showNew, setShowNew] = useState(false);
+  const [reviewId, setReviewId] = useState<string | null>(null);
   const toast = useToast();
 
   async function copyLink(token: string) {
@@ -110,6 +117,11 @@ export function VendorRegistrationsPage() {
                             <Copy size={14} /> Copy link
                           </Button>
                         )}
+                        {(r.status === "Submitted" || r.status === "UnderReview") && (
+                          <Button size="sm" onClick={() => setReviewId(r.id)}>
+                            Review
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -121,6 +133,7 @@ export function VendorRegistrationsPage() {
       )}
 
       <InitiateModal open={showNew} onClose={() => setShowNew(false)} />
+      <ReviewModal regId={reviewId} onClose={() => setReviewId(null)} />
     </>
   );
 }
@@ -225,6 +238,116 @@ function InitiateModal({ open, onClose }: { open: boolean; onClose: () => void }
               Create &amp; get link
             </Button>
           </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function ReviewModal({ regId, onClose }: { regId: string | null; onClose: () => void }) {
+  const { data } = useVendorRegistration(regId ?? undefined);
+  const review = useReviewRegistration();
+  const toast = useToast();
+  const [note, setNote] = useState("");
+
+  let parsed: Record<string, string> = {};
+  if (data?.submittedData) {
+    try {
+      parsed = JSON.parse(data.submittedData);
+    } catch {
+      parsed = {};
+    }
+  }
+
+  function display(fieldType: string, raw: string): string {
+    if (raw === undefined || raw === null || raw === "") return "—";
+    if (fieldType === "boolean") return raw === "true" ? "Yes" : "No";
+    return String(raw);
+  }
+
+  async function act(action: "approve" | "reject") {
+    if (!data) return;
+    if (action === "reject" && !note.trim()) {
+      toast.push("A reason is required to reject", "error");
+      return;
+    }
+    try {
+      await review.mutateAsync({ id: data.id, action, note: note.trim() || undefined });
+      toast.push(action === "approve" ? "Registration approved" : "Registration rejected");
+      setNote("");
+      onClose();
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
+  return (
+    <Modal open={!!regId} onClose={onClose} title="Review registration">
+      {!data ? (
+        <Spinner />
+      ) : (
+        <div className="space-y-4">
+          <div className="text-sm">
+            <div className="font-medium text-[var(--pk-navy)]">{data.vendorName || data.vendorEmail}</div>
+            <div className="text-xs text-gray-400">
+              {data.vendorEmail} · <Badge tone="info">{data.status}</Badge>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[var(--pk-line)]">
+            <div className="border-b border-gray-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Submitted answers
+            </div>
+            <div className="divide-y divide-gray-50">
+              {data.fields.length === 0 ? (
+                <div className="p-3 text-sm text-gray-400">No fields.</div>
+              ) : (
+                data.fields.map((f) => (
+                  <div key={f.fieldKey} className="grid grid-cols-3 gap-2 px-4 py-2 text-sm">
+                    <div className="text-gray-500">{f.label}</div>
+                    <div className="col-span-2 text-[var(--pk-navy)]">{display(f.fieldType, parsed[f.fieldKey])}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[var(--pk-line)] p-3 text-sm">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">Signature</div>
+            {data.signatureImage && data.signatureImage.startsWith("data:image") ? (
+              <img src={data.signatureImage} alt="signature" className="h-20 rounded border border-gray-100 bg-white" />
+            ) : (
+              <div className="italic text-gray-600">{data.signerName || "—"}</div>
+            )}
+            <div className="mt-1 text-xs text-gray-400">
+              Signed by {data.signerName || "—"}
+              {data.signedAt ? ` on ${fmtDate(data.signedAt)}` : ""}
+              {data.signerIp ? ` · IP ${data.signerIp}` : ""}
+            </div>
+          </div>
+
+          {(data.status === "Submitted" || data.status === "UnderReview") && (
+            <>
+              <Field label="Review note (required to reject)">
+                <Input value={note} onChange={(e) => setNote(e.target.value)} />
+              </Field>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="danger"
+                  onClick={() => act("reject")}
+                  loading={review.isPending}
+                >
+                  Reject
+                </Button>
+                <Button onClick={() => act("approve")} loading={review.isPending}>
+                  Approve
+                </Button>
+              </div>
+            </>
+          )}
+          {data.reviewNote && (
+            <p className="text-xs text-gray-500">Review note: {data.reviewNote}</p>
+          )}
         </div>
       )}
     </Modal>
