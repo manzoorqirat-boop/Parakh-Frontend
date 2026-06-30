@@ -29,6 +29,7 @@ const nav = [
   { to: "/audits", label: "Audits", icon: ClipboardCheck },
   { to: "/auditors", label: "Auditors", icon: Users },
   { to: "/registers", label: "Registers", icon: BookText },
+  { to: "/vendor-registrations", label: "Vendor registrations", icon: FileSignature },
   { to: "/capas", label: "CAPAs", icon: Wrench },
   { to: "/scars", label: "SCARs", icon: AlertTriangle },
   { to: "/sncrs", label: "SNCRs", icon: FileWarning },
