@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Copy } from "lucide-react";
+import { Plus, Copy, Download } from "lucide-react";
 import {
   useVendorRegistrations,
   useInitiateRegistration,
@@ -11,7 +11,7 @@ import { Button, Card, CardBody, Field, Input, Select } from "@/components/ui/pr
 import { Spinner, ErrorNote, EmptyState, Badge } from "@/components/ui/status";
 import { Modal, useToast } from "@/components/ui/overlay";
 import { PageHeader } from "@/components/AppLayout";
-import { apiError } from "@/lib/api";
+import { api, apiError } from "@/lib/api";
 
 function statusTone(s: string): "neutral" | "ok" | "warn" | "danger" | "info" | "muted" {
   switch (s) {
@@ -280,17 +280,39 @@ function ReviewModal({ regId, onClose }: { regId: string | null; onClose: () => 
     }
   }
 
+  async function downloadPdf() {
+    if (!data) return;
+    try {
+      const res = await api.get(`/vendor-registrations/${data.id}/pdf`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vendor-registration-${data.vendorName || data.vendorEmail}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.push(apiError(e), "error");
+    }
+  }
+
   return (
     <Modal open={!!regId} onClose={onClose} title="Review registration">
       {!data ? (
         <Spinner />
       ) : (
         <div className="space-y-4">
-          <div className="text-sm">
-            <div className="font-medium text-[var(--pk-navy)]">{data.vendorName || data.vendorEmail}</div>
-            <div className="text-xs text-gray-400">
-              {data.vendorEmail} · <Badge tone="info">{data.status}</Badge>
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-sm">
+              <div className="font-medium text-[var(--pk-navy)]">{data.vendorName || data.vendorEmail}</div>
+              <div className="text-xs text-gray-400">
+                {data.vendorEmail} · <Badge tone="info">{data.status}</Badge>
+              </div>
             </div>
+            {data.submittedAt && (
+              <Button size="sm" variant="outline" onClick={downloadPdf}>
+                <Download size={14} /> PDF
+              </Button>
+            )}
           </div>
 
           <div className="rounded-lg border border-[var(--pk-line)]">
