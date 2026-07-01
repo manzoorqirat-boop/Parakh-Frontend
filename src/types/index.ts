@@ -168,6 +168,7 @@ export interface VendorFormDetail {
   description?: string | null;
   version: number;
   isActive: boolean;
+  mappingJson?: string | null;
   fields: VendorFormFieldRow[];
 }
 
