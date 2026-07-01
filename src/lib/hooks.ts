@@ -203,6 +203,7 @@ export function useInitiateRegistration() {
       vendorName?: string;
       supplierParentId?: string;
       expiryDays?: number;
+      appOrigin?: string;
     }) => (await api.post<{ id: string; token: string; expiryDate: string }>("/vendor-registrations", body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor-registrations"] }),
   });
