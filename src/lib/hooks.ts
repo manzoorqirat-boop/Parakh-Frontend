@@ -230,6 +230,7 @@ export function useCreateVendorForm() {
       name: string;
       description?: string;
       fields: VendorFormFieldRow[];
+      mappingJson?: string;
     }) => (await api.post("/vendor-forms", body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vendor-forms"] }),
   });
@@ -243,6 +244,7 @@ export function useUpdateVendorForm() {
       name: string;
       description?: string;
       fields: VendorFormFieldRow[];
+      mappingJson?: string;
     }) => (await api.put(`/vendor-forms/${v.id}`, v)).data,
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["vendor-forms"] });
