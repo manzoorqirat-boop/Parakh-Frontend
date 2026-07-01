@@ -166,6 +166,7 @@ function InitiateModal({ open, onClose }: { open: boolean; onClose: () => void }
         vendorEmail: vendorEmail.trim(),
         vendorName: vendorName.trim() || undefined,
         expiryDays: Number(expiryDays) > 0 ? Number(expiryDays) : undefined,
+        appOrigin: window.location.origin,
       });
       setCreatedLink(buildLink(res.token));
       toast.push("Registration created");
@@ -194,7 +195,8 @@ function InitiateModal({ open, onClose }: { open: boolean; onClose: () => void }
       {createdLink ? (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Share this secure link with the vendor. It expires on the date set and is single-purpose.
+            Share this secure link with the vendor. If email is configured, it has also been sent to{" "}
+            {vendorEmail || "the vendor"}. It expires on the date set.
           </p>
           <div className="rounded-lg border border-[var(--pk-line)] bg-gray-50 p-3 text-xs break-all text-[var(--pk-navy)]">
             {createdLink}
