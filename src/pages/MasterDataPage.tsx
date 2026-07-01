@@ -1223,6 +1223,23 @@ function NumberingAdminPanel() {
 
 const FIELD_TYPES = ["text", "textarea", "date", "number", "email", "select", "boolean"] as const;
 
+// Target supplier/site attributes a form field can populate on approval.
+const MAP_TARGETS: { key: string; label: string }[] = [
+  { key: "legalName", label: "Company / legal name" },
+  { key: "siteName", label: "Site name" },
+  { key: "address", label: "Site address" },
+  { key: "country", label: "Country (ISO code)" },
+  { key: "category", label: "Supplier category" },
+  { key: "siteType", label: "Site type" },
+  { key: "gmpStatus", label: "GMP status" },
+  { key: "riskTier", label: "Risk tier" },
+];
+
+function slugKey(label: string): string {
+  const s = (label || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return s || "field";
+}
+
 function VendorFormAdminPanel() {
   const { data: list } = useVendorForms();
   const [editId, setEditId] = useState<string | "new" | null>(null);
@@ -1286,12 +1303,18 @@ function VendorFormEditor({ editId, onClose }: { editId: string | "new"; onClose
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [fields, setFields] = useState<VendorFormFieldRow[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (detail && !isNew) {
       setName(detail.name);
       setDescription(detail.description ?? "");
       setFields(detail.fields.map((f) => ({ ...f })));
+      try {
+        setMapping(detail.mappingJson ? JSON.parse(detail.mappingJson) : {});
+      } catch {
+        setMapping({});
+      }
     }
   }, [detail, isNew]);
 
@@ -1309,19 +1332,25 @@ function VendorFormEditor({ editId, onClose }: { editId: string | "new"; onClose
   }
 
   async function save() {
+    const kept = fields.filter((f) => f.label.trim());
+    // Stable key per field so mapping references match what's saved.
+    const keyOf = (f: VendorFormFieldRow) => (f.fieldKey || "").trim() || slugKey(f.label);
+    const cleanMapping: Record<string, string> = {};
+    for (const [target, fk] of Object.entries(mapping)) {
+      if (fk) cleanMapping[target] = fk;
+    }
     const body = {
       name: name.trim(),
       description: description.trim() || undefined,
-      fields: fields
-        .filter((f) => f.label.trim())
-        .map((f) => ({
-          label: f.label.trim(),
-          fieldKey: (f.fieldKey || "").trim(),
-          fieldType: f.fieldType || "text",
-          required: f.required,
-          section: f.section?.trim() || undefined,
-          options: f.fieldType === "select" ? f.options?.trim() || undefined : undefined,
-        })),
+      fields: kept.map((f) => ({
+        label: f.label.trim(),
+        fieldKey: keyOf(f),
+        fieldType: f.fieldType || "text",
+        required: f.required,
+        section: f.section?.trim() || undefined,
+        options: f.fieldType === "select" ? f.options?.trim() || undefined : undefined,
+      })),
+      mappingJson: Object.keys(cleanMapping).length ? JSON.stringify(cleanMapping) : undefined,
     };
     if (!body.name) {
       toast.push("Name is required", "error");
@@ -1340,6 +1369,11 @@ function VendorFormEditor({ editId, onClose }: { editId: string | "new"; onClose
       toast.push(apiError(e), "error");
     }
   }
+
+  // Field options for the mapping dropdowns (stable keys derived like the save).
+  const fieldOptions = fields
+    .filter((f) => f.label.trim())
+    .map((f) => ({ key: (f.fieldKey || "").trim() || slugKey(f.label), label: f.label.trim() }));
 
   return (
     <Card>
@@ -1428,6 +1462,33 @@ function VendorFormEditor({ editId, onClose }: { editId: string | "new"; onClose
               ))}
             </div>
           )}
+        </div>
+
+        <div className="rounded-lg border border-[var(--pk-line)]">
+          <div className="border-b border-gray-100 px-4 py-2">
+            <span className="text-sm font-medium text-[var(--pk-navy)]">Field mapping (optional)</span>
+            <p className="text-xs text-gray-400">
+              Link fields to supplier/site attributes used when an approved registration creates a site.
+            </p>
+          </div>
+          <div className="space-y-2 p-3">
+            {MAP_TARGETS.map((t) => (
+              <div key={t.key} className="grid grid-cols-2 items-center gap-2">
+                <span className="text-sm text-gray-600">{t.label}</span>
+                <Select
+                  value={mapping[t.key] ?? ""}
+                  onChange={(e) => setMapping((m) => ({ ...m, [t.key]: e.target.value }))}
+                >
+                  <option value="">— not mapped —</option>
+                  {fieldOptions.map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">
